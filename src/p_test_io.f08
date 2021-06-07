@@ -1,20 +1,15 @@
 !>
 program p_test_io
 
-  use m_io
   use m_random
+  use m_io
 
   implicit none
 
-  integer , parameter :: test_seed = 102131
-  integer , parameter :: test_n = 15
-  integer , parameter :: test_n_rows = 10
-  integer , parameter :: test_n_cols = 14
+  integer , parameter :: seed = 102131
 
-  double precision , parameter :: test_mu = 0.0d0
-  double precision , parameter :: test_sigma = 1.0d3
-
-  call test_display_vector(test_seed, test_n, test_mu, test_sigma)
+  call test_display_vector(seed, 15, 0.0d0, 1.0d3)
+  call test_display_vector(seed, 15, 0.0d0, 1.0d-4)
 
 contains
 

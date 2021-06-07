@@ -43,8 +43,8 @@ contains
     double precision , intent(out) :: x1, x2
     double precision :: u1, u2, r
 
-    u1 = random_uniform(0.0d0, 1.0d0)
-    u2 = random_uniform(0.0d0, 1.0d0)
+    call random_uniform(0.0d0, 1.0d0, u1)
+    call random_uniform(0.0d0, 1.0d0, u2)
 
     r = sigma*sqrt(-2.0d0 * log(u1))
 

@@ -1,5 +1,5 @@
 !>
-module io
+module m_io
 
   use m_parameters, only : DP_MAX
 
@@ -251,7 +251,7 @@ contains
   ! i/o statements.
   function dp_format_string (w, d) result (str)
     integer , intent(in) :: w, d
-    character(:) , allocatable , intent(out) :: str
+    character(len=:) , allocatable :: str
     character(len=100) :: str_w, str_d, str_temp
     integer :: l
 
@@ -267,7 +267,7 @@ contains
     l = len(trim(adjustl(str_temp)))
 
     ! write compacted format string (uses minimal space)
-    allocate(str(l))
+    allocate(character(len=l) :: str)
 
     write (str, *) "(f", trim(adjustl(str_w)), ".", trim(adjustl(str_d)), ")"
 
@@ -283,12 +283,12 @@ contains
   ! aligned with non-zero elements.
   function dp_zero_string (w, d) result (str)
     integer , intent(in) :: w, d
-    character(len=w) , intent(out) :: str
+    character(len=w) :: str
 
     ! write zero string
     str = repeat(' ', w)
-    str(w-d) = '.'
+    str(w-d:w-d) = '.'
 
   end function dp_zero_string
 
-end module io
+end module m_io

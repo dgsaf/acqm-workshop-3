@@ -94,7 +94,7 @@ contains
             ) / (1.0d0 + step_g_grid(ii+1))
 
         ! check for and handle numerical error (NaN or Infinity)
-        if ((y_grid(ii+1) /= y_grid(ii+1)) .or. (y_grid(ii+1) > INF)) then
+        if ((y_grid(ii+1) /= y_grid(ii+1)) .or. (y_grid(ii+1) > INFINITY)) then
           status = -1
 
           if (ii + 2 <= n_x) then

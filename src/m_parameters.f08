@@ -1,5 +1,5 @@
 !>
-module parameters
+module m_parameters
 
   implicit none
 
@@ -9,6 +9,6 @@ module parameters
   double precision , parameter :: PI = 4.0d0*DATAN(1.0d0)
 
   ! pretty printing parameters
-  integer , parameter :: DP_DISP = 4
+  integer , parameter :: DP_MAX = 4
 
-end module parameters
+end module m_parameters

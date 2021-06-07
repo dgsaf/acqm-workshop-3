@@ -160,21 +160,27 @@ SRCS_H := $(wildcard src/*.h)
 SRCS_CXX := $(wildcard src/*.cpp)
 SRCS_HXX := $(wildcard src/*.hpp)
 SRCS_F := $(wildcard src/*.f*) $(wildcard src/*.F*)
+SRCS_F_MODS := $(wildcard src/m_*.f*) $(wildcard src/m_*.F*)
+SRCS_F_PRGS := $(wildcard src/p_*.f*) $(wildcard src/p_*.F*)
 
 # select fortran files (and c header files for preprocessing)
 HDRS := $(SRCS_H)
 SRCS := $(SRCS_F)
+SRCS_MODS := $(SRCS_F_MODS)
+SRCS_PRGS := $(SRCS_F_PRGS)
 
 # define the base-names and file-suffixes of the source files
-BSNS := $(notdir $(basename $(SRCS)))
 EXTS := $(suffix $(SRCS))
+BSNS := $(notdir $(basename $(SRCS)))
+BSNS_MODS := $(notdir $(basename $(SRCS_MODS)))
+BSNS_PRGS := $(notdir $(basename $(SRCS_PRGS)))
 
 # define the object and module files for each source file
 OBJS := $(addprefix obj/,$(addsuffix .o,$(BSNS)))
-MODS := $(addprefix mod/,$(addsuffix .mod,$(BSNS)))
+MODS := $(addprefix mod/,$(addsuffix .mod,$(BSNS_MODS)))
 
 # define binary targets to be made
-BINS :=
+BINS := $(addprefix bin/,$(BSNS_PRGS))
 
 
 # directory commands
@@ -211,20 +217,24 @@ clean_bin :
 
 # make commands
 
+# explicit target dependencies for objects
+obj/m_random.o : obj/m_parameters.o
+obj/m_io.o : obj/m_parameters.o
+obj/m_diffeq.o : obj/m_parameters.o
+
 # implicit rule for arbitrary fortan targets
 obj/%.o : $(firstword $(addprefix src/%,$(EXTS)))
 	@echo "$(PFX)$@ : $^"
 	$(FORT) $(COMMONFLAGS) $(FFLAGS) -c $< -o $@ -J mod/
 
-# explicit target dependencies
-# obj/parameters.o : src/debug.h
-# obj/integrate.o : src/debug.h obj/parameters.o
-# obj/basis.o : src/debug.h obj/parameters.o
+
+# explicit target dependencies for binaries
+bin/p_test_io : obj/m_random.o obj/m_io.o
 
 # implicit rule for binary targets
-bin/% : $(OBJS)
+bin/% : $(firstword $(addprefix src/%,$(EXTS)))
 	@echo "$(PFX)$@ : $^"
-	$(FORT) $(COMMONFLAGS) $(FFLAGS) -o $@ $(OBJS)
+	$(FORT) $(COMMONFLAGS) $(FFLAGS) -o $@ $^ -J mod/
 
 
 # info commands
