@@ -1,9 +1,13 @@
 !>
 module m_io
 
-  use m_parameters, only : DP_MAX
+  use m_parameters, only : DP_MAX, STDOUT
 
   implicit none
+
+  private
+  public :: write_vector, write_matrix, write_functions, display_vector, &
+      display_matrix, display_functions
 
 contains
 
@@ -53,11 +57,12 @@ contains
 
   end subroutine write_matrix
 
-  ! write_basis
-  subroutine write_basis (n_r, r_grid, n_basis, basis, filename)
-    integer , intent(in) :: n_r, n_basis
-    double precision , intent(in) :: r_grid(n_r)
-    double precision , intent(in) :: basis(n_r, n_basis)
+  ! write_functions
+  subroutine write_functions (n_x, x_grid, n_f, f, filename)
+    integer , intent(in) :: n_x
+    double precision , intent(in) :: x_grid(n_x)
+    integer , intent(in) :: n_f
+    double precision , intent(in) :: f(n_x, n_f)
     character(len=*) , intent(in) :: filename
     integer :: fileunit
     integer :: ii
@@ -67,27 +72,36 @@ contains
 
     open (unit=fileunit, file=trim(adjustl(filename)), action="write")
 
-    ! write r_grid, and basis functions to file
-    do ii = 1, n_r
-      write (fileunit, *) r_grid(ii), " ", basis(ii, :)
+    ! write x_grid, and functions to file
+    do ii = 1, n_x
+      write (fileunit, *) x_grid(ii), " ", f(ii, :)
     end do
 
     ! close file
     close (fileunit)
 
-  end subroutine write_basis
+  end subroutine write_functions
 
   ! display_vector
-  subroutine display_vector (n, x, dp)
+  subroutine display_vector (n, x, unit, dp)
     integer , intent(in) :: n
     double precision , intent(in) :: x(n)
+    integer , optional , intent(in) :: unit
     integer , optional , intent(in) :: dp
+    integer :: u
     integer :: w, d
     character(len=:) , allocatable :: fmt_str, zero_str
     integer :: ii
 
+    ! write to stdout if optional file unit not provided
+    if (present(unit)) then
+      u = unit
+    else
+      u = STDOUT
+    end if
+
     ! determine double precision number formatting
-    call dp_format(n, x, w, d, dp)
+    call dp_format(n, x, w, d, decimals=dp)
     call dp_format_string(w, d, fmt_str)
     call dp_zero_string(w, d, zero_str)
 
@@ -95,25 +109,35 @@ contains
     do ii = 1, n
       ! if x(ii) will be written as "0.00..0", replace with " .     "
       if (abs(x(ii)) > (10.0d0**(-d))) then
-        write (*, fmt_str) x(ii)
+        write (u, fmt_str) x(ii)
       else
-        write (*, "(a)") zero_str
+        write (u, "(a)") zero_str
       end if
     end do
 
   end subroutine display_vector
 
   ! display_matrix
-  subroutine display_matrix (n_rows, n_cols, A, dp)
+  subroutine display_matrix (n_rows, n_cols, A, unit, dp)
     integer , intent(in) :: n_rows, n_cols
     double precision , intent(in) :: A(n_rows, n_cols)
+    integer , optional, intent(in) :: unit
     integer , optional, intent(in) :: dp
+    integer :: u
     integer :: w, d
     character(len=:) , allocatable :: fmt_str, zero_str
     integer :: ii, jj
 
+    ! write to stdout if optional file unit not provided
+    if (present(unit)) then
+      u = unit
+    else
+      u = STDOUT
+    end if
+
     ! determine double precision number formatting
-    call dp_format(n_rows*n_cols, reshape(A, (/n_rows*n_cols/)), w, d, dp)
+    call dp_format(n_rows*n_cols, reshape(A, (/n_rows*n_cols/)), w, d, &
+        decimals=dp)
     call dp_format_string(w, d, fmt_str)
     call dp_zero_string(w, d, zero_str)
 
@@ -122,47 +146,62 @@ contains
       do jj = 1, n_cols
         ! if A(ii, jj) will be written as "0.00..0", replace with " .     "
         if (abs(A(ii, jj)) > (10.0d0**(-d))) then
-          write (*, fmt_str, advance="no") A(ii, jj)
+          write (u, fmt_str, advance="no") A(ii, jj)
         else
-          write (*, "(a)", advance="no") zero_str
+          write (u, "(a)", advance="no") zero_str
         end if
       end do
-      write (*, *)
+      write (u, *)
     end do
 
   end subroutine display_matrix
 
   ! display_functions
-  subroutine display_functions (n_x, x_grid, n_f, f, dp)
+  subroutine display_functions (n_x, x_grid, n_f, f, unit, dp)
     integer , intent(in) :: n_x
     double precision , intent(in) :: x_grid(n_x)
     integer , intent(in) :: n_f
     double precision , intent(in) :: f(n_x, n_f)
+    integer , optional , intent(in) :: unit
     integer , optional , intent(in) :: dp
+    integer :: u
     integer :: w, d
     character(len=:) , allocatable :: fmt_str, zero_str
     integer :: ii, jj
 
+    ! write to stdout if optional file unit not provided
+    if (present(unit)) then
+      u = unit
+    else
+      u = STDOUT
+    end if
+
     ! determine double precision number formatting
-    call dp_format(n_x*n_f, reshape(f, (/n_x*n_f/)), w, d, dp)
+    call dp_format(n_x*n_f, reshape(f, (/n_x*n_f/)), w, d, decimals=dp)
     call dp_format_string(w, d, fmt_str)
     call dp_zero_string(w, d, zero_str)
 
     ! write out radial grid and radial basis values
     do ii = 1, n_x
-      write (*, fmt_str, advance="no") x_grid(ii)
+      write (u, fmt_str, advance="no") x_grid(ii)
       do jj = 1, n_f
         ! if f(ii, jj) will be written as "0.00..0", replace with " .     "
         if (abs(f(ii, jj)) > (10.0d0**(-d))) then
-          write (*, fmt_str, advance="no") f(ii, jj)
+          write (u, fmt_str, advance="no") f(ii, jj)
         else
-          write (*, "(a)", advance="no") zero_str
+          write (u, "(a)", advance="no") zero_str
         end if
       end do
-      write (*, *)
+      write (u, *)
     end do
 
   end subroutine display_functions
+
+  ! ! display_graph
+  ! subroutine display_function_graph (n_x, x_grid, f_grid, dp)
+
+  ! end subroutine display_function_graph
+
 
   ! dp_format
   !
@@ -174,11 +213,11 @@ contains
   ! The width is determined to be the minimum width required to print any
   ! element of the array, positive or negative, with the required level of
   ! decimal precision.
-  subroutine dp_format (n, x, w, d, dp)
+  subroutine dp_format (n, x, w, d, decimals)
     integer , intent(in) :: n
     double precision , intent(in) :: x(n)
     integer , intent(out) :: w, d
-    integer , optional , intent(in) :: dp
+    integer , optional , intent(in) :: decimals
     ! ! alternative method variables
     ! character(len=100) :: temp, fmt_temp, str_d
     ! integer :: l
@@ -186,8 +225,8 @@ contains
 
     ! determine decimal places, either from optional argument or predefined
     ! global parameter
-    if (present(dp)) then
-      d = dp
+    if (present(decimals)) then
+      d = decimals
     else
       d = DP_MAX
     end if
