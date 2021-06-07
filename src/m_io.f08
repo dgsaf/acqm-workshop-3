@@ -217,8 +217,6 @@ contains
     double precision :: temp
     integer :: ii, jj, kk
     character :: symbol
-    integer , allocatable :: bounds(:, :)
-    logical :: inside
 
     ! write to stdout if optional file unit not provided
     if (present(unit)) then
@@ -266,23 +264,16 @@ contains
       l_y = temp
     end if
 
-    ! debug
-    write (*, *) l_x, u_x
-    write (*, *) l_y, u_y
-
     ! grid width and height (max 80x80)
     n_x = 80
     if (present(width) .and. (width >= 1)) then
       n_x = min(width, n_x)
     end if
 
-    n_y = 80
+    n_y = 45
     if (present(height) .and. (height >= 1)) then
       n_y = min(height, n_y)
     end if
-
-    ! debug
-    write (*, *) n_x, n_y
 
     ! grid x, y segments
     allocate(x_seg(n_x))
@@ -290,66 +281,18 @@ contains
 
     do ii = 1, n_x
       x_seg(ii) = l_x + (u_x - l_x)*(ii - 1)/(n_x - 1)
-
-      ! debug
-      write (*, *) ii, x_seg(ii)
     end do
 
     do jj = 1, n_y
       y_seg(jj) = l_y + (u_y - l_y)*(jj - 1)/(n_y - 1)
-
-      ! debug
-      write (*, *) jj, y_seg(jj)
     end do
 
-    ! bounds
-    allocate(bounds(n_x-1, 2))
-    bounds(:, 1) = 0
-    bounds(:, 2) = -1
+    ! write graph details
 
-    do ii = 1, n_x-1
-      ! debug
-      write (*, *) ii, "[", x_seg(ii), " , ", x_seg(ii+1), "]"
-
-      if (ii == 1) then
-        kk = 1
-      else
-        kk = max(1, bounds(ii-1, 2)+1)
-      end if
-
-      inside = .false.
-
-      do while ((kk <= n) .and. (.not. inside))
-        inside = ((x_seg(ii) <= x(kk)) .and. (x(kk) < x_seg(ii+1)))
-
-        ! debug
-        write (*, *) "< ", kk, x(kk), inside
-
-        if (.not. inside) then
-          kk = kk + 1
-        end if
-      end do
-
-      if (inside) then
-        bounds(ii, 1) = kk
-
-        do while ((kk <= n) .and. (inside))
-          inside = ((x_seg(ii) <= x(kk)) .and. (x(kk) < x_seg(ii+1)))
-
-          ! debug
-          write (*, *) "< <", kk, x(kk), inside
-
-          if (inside) then
-            kk = kk + 1
-          end if
-        end do
-
-        bounds(ii, 2) = max(bounds(ii, 1), kk - 1)
-      end if
-
-      ! debug
-      write (*, *) "= ", bounds(ii, 1), bounds(ii, 2)
-    end do
+    write (u, *) &
+        "(", dp_trim(l_x), " , ", dp_trim(u_x), ") x ", &
+        "(", dp_trim(l_y), " , ", dp_trim(u_y), ") on ", &
+        "(", int_trim(n_x), " x ", int_trim(n_y), ")"
 
     ! loop over grid boxes, with
     ! box(i,j) = (x_seg(i), x_seg(i+1)) x (y_seg(j), y_seg(j+1))
@@ -374,8 +317,9 @@ contains
         end if
 
         ! if box(i,j) contains f(x(k)), then write '*'
-        do kk = bounds(ii, 1), bounds(ii, 2)
-          if ((y_seg(jj) <= f(kk)) .and. (f(kk) < y_seg(jj+1))) then
+        do kk = 1, n
+          if ((x_seg(ii) <= x(kk)) .and. (x(kk) < x_seg(ii+1)) &
+              .and. (y_seg(jj) <= f(kk)) .and. (f(kk) < y_seg(jj+1))) then
             symbol = '*'
           end if
         end do
@@ -484,5 +428,71 @@ contains
     str(w-d:w-d) = '.'
 
   end subroutine dp_zero_string
+
+
+  ! int_trim
+  !
+  ! Brief:
+  ! Trim an integer number.
+  function int_trim (x) result (str)
+    integer , intent(in) :: x
+    character(len=:) , allocatable :: str
+    character(len=100) :: str_temp
+    integer :: l
+
+    ! write integer to string
+    write (str_temp, "(i90)") x
+    str_temp = adjustl(str_temp)
+
+    l = len(trim(adjustl(str_temp)))
+
+    ! write compacted format string (uses minimal space)
+    allocate(character(len=l) :: str)
+
+    write (str, "(a)") trim(adjustl(str_temp))
+
+  end function int_trim
+
+  ! dp_trim
+  !
+  ! Brief:
+  ! Trim a double precision number
+  function dp_trim (x) result (str)
+    double precision , intent(in) :: x
+    character(len=:) , allocatable :: str
+    character(len=:) , allocatable :: fmt_str
+    character(len=100) :: str_temp
+    logical :: trimmed
+    integer :: ii
+
+    ! write format string
+    call dp_format_string(90, DP_MAX, fmt_str)
+
+    ! write dp to string
+    write (str_temp, fmt_str) x
+    str_temp = trim(adjustl(str_temp))
+
+    ! search for last redundant zero/whitespace
+    trimmed = .false.
+    ii = len(str_temp)
+    do while ((ii > 1) .and. (.not. trimmed))
+      if ((str_temp(ii:ii) == " ") .or. (str_temp(ii:ii) == "0")) then
+        ii = ii - 1
+      else
+        trimmed = .true.
+      end if
+    end do
+
+    ! handle case of all decimals being zero
+    if (str_temp(ii:ii) == ".") then
+      ii = ii + 1
+    end if
+
+    ! write compacted format string (uses minimal space)
+    allocate(character(len=ii) :: str)
+
+    write (str, "(a)") trim(str_temp(1:ii))
+
+  end function dp_trim
 
 end module m_io

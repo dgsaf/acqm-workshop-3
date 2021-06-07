@@ -106,21 +106,11 @@ contains
 
     do ii = 1, n
       x(ii) = -1.0d0 + 2.0d0*dble(ii - 1)/dble(n - 1)
-      f(ii) = sin(3.0d0*x(ii))
+      f(ii) = (x(ii) ** 2) - 0.5d0
     end do
 
     write (*, *) "display `f` graph"
     call display_graph(n, x, f)
-
-    write (*, *) "display `f` graph with "
-    write (*, *) "  `left`   = ", -2.0d0
-    write (*, *) "  `right`  = ",  2.0d0
-    write (*, *) "  `bottom` = ", -1.0d-1
-    write (*, *) "  `top`    = ",  3.0d0
-    write (*, *) "  `width`  = ", 50
-    write (*, *) "  `height` = ", 40
-    call display_graph(n, x, f, &
-        left=-2.0d0, right=2.0d0, bottom=-1.0d-1, top=3.0d0, width=50, height=40)
 
     write (*, *) "end test_display_graph"
 
