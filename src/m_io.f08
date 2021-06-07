@@ -7,7 +7,7 @@ module m_io
 
   private
   public :: write_vector, write_matrix, write_functions, display_vector, &
-      display_matrix, display_functions
+      display_matrix, display_functions, display_graph
 
 contains
 
@@ -197,10 +197,198 @@ contains
 
   end subroutine display_functions
 
-  ! ! display_graph
-  ! subroutine display_function_graph (n_x, x_grid, f_grid, dp)
+  ! display_graph
+  !
+  ! Brief:
+  ! Display the graph of a function on an ascii-based grid.
+  subroutine display_graph (n, x, f, unit, &
+      left, right, bottom, top, width, height)
+    integer , intent(in) :: n
+    double precision , intent(in) :: x(n)
+    double precision , intent(in) :: f(n)
+    integer , optional , intent(in) :: unit
+    double precision , optional , intent(in) :: left, right
+    double precision , optional , intent(in) :: bottom, top
+    integer , optional , intent(in) :: width, height
+    integer :: u
+    double precision :: l_x, u_x, l_y, u_y
+    integer :: n_x, n_y
+    double precision , allocatable :: x_seg(:), y_seg(:)
+    double precision :: temp
+    integer :: ii, jj, kk
+    character :: symbol
+    integer , allocatable :: bounds(:, :)
+    logical :: inside
 
-  ! end subroutine display_function_graph
+    ! write to stdout if optional file unit not provided
+    if (present(unit)) then
+      u = unit
+    else
+      u = STDOUT
+    end if
+
+    ! x-axis geometry
+    if (present(left)) then
+      l_x = left
+    else
+      l_x = x(1)
+    end if
+
+    if (present(right)) then
+      u_x = right
+    else
+      u_x = x(n)
+    end if
+
+    ! y-axis geometry
+    if (present(bottom)) then
+      l_y = bottom
+    else
+      l_y = minval(f(:))
+    end if
+
+    if (present(top)) then
+      u_y = top
+    else
+      u_y = maxval(f(:))
+    end if
+
+    ! check ordering of left < right, bottom < top
+    if (l_x > u_x) then
+      temp = u_x
+      u_x = l_x
+      l_x = temp
+    end if
+
+    if (l_y > u_y) then
+      temp = u_y
+      u_y = l_y
+      l_y = temp
+    end if
+
+    ! debug
+    write (*, *) l_x, u_x
+    write (*, *) l_y, u_y
+
+    ! grid width and height (max 80x80)
+    n_x = 80
+    if (present(width) .and. (width >= 1)) then
+      n_x = min(width, n_x)
+    end if
+
+    n_y = 80
+    if (present(height) .and. (height >= 1)) then
+      n_y = min(height, n_y)
+    end if
+
+    ! debug
+    write (*, *) n_x, n_y
+
+    ! grid x, y segments
+    allocate(x_seg(n_x))
+    allocate(y_seg(n_y))
+
+    do ii = 1, n_x
+      x_seg(ii) = l_x + (u_x - l_x)*(ii - 1)/(n_x - 1)
+
+      ! debug
+      write (*, *) ii, x_seg(ii)
+    end do
+
+    do jj = 1, n_y
+      y_seg(jj) = l_y + (u_y - l_y)*(jj - 1)/(n_y - 1)
+
+      ! debug
+      write (*, *) jj, y_seg(jj)
+    end do
+
+    ! bounds
+    allocate(bounds(n_x-1, 2))
+    bounds(:, 1) = 0
+    bounds(:, 2) = -1
+
+    do ii = 1, n_x-1
+      ! debug
+      write (*, *) ii, "[", x_seg(ii), " , ", x_seg(ii+1), "]"
+
+      if (ii == 1) then
+        kk = 1
+      else
+        kk = max(1, bounds(ii-1, 2)+1)
+      end if
+
+      inside = .false.
+
+      do while ((kk <= n) .and. (.not. inside))
+        inside = ((x_seg(ii) <= x(kk)) .and. (x(kk) < x_seg(ii+1)))
+
+        ! debug
+        write (*, *) "< ", kk, x(kk), inside
+
+        if (.not. inside) then
+          kk = kk + 1
+        end if
+      end do
+
+      if (inside) then
+        bounds(ii, 1) = kk
+
+        do while ((kk <= n) .and. (inside))
+          inside = ((x_seg(ii) <= x(kk)) .and. (x(kk) < x_seg(ii+1)))
+
+          ! debug
+          write (*, *) "< <", kk, x(kk), inside
+
+          if (inside) then
+            kk = kk + 1
+          end if
+        end do
+
+        bounds(ii, 2) = max(bounds(ii, 1), kk - 1)
+      end if
+
+      ! debug
+      write (*, *) "= ", bounds(ii, 1), bounds(ii, 2)
+    end do
+
+    ! loop over grid boxes, with
+    ! box(i,j) = (x_seg(i), x_seg(i+1)) x (y_seg(j), y_seg(j+1))
+    do jj = n_y-1, 1, -1
+      kk = 1
+      do ii = 1, n_x-1
+        ! if box(i,j) contains nothing, write ' '
+        symbol = ' '
+
+        ! if box(i,j) contains y=0, write '-'
+        if ((y_seg(jj) <= 0.0d0) .and. (0.0d0 < y_seg(jj+1))) then
+          symbol = '-'
+        end if
+
+        ! if box(i,j) contains x=0, write '|', or '+' if it contains origin
+        if ((x_seg(ii) <= 0.0d0) .and. (0.0d0 < x_seg(ii+1))) then
+          if (symbol == '-') then
+            symbol = '+'
+          else
+            symbol = '|'
+          end if
+        end if
+
+        ! if box(i,j) contains f(x(k)), then write '*'
+        do kk = bounds(ii, 1), bounds(ii, 2)
+          if ((y_seg(jj) <= f(kk)) .and. (f(kk) < y_seg(jj+1))) then
+            symbol = '*'
+          end if
+        end do
+
+        ! write symbol
+        write (u, "(a)", advance="no") symbol
+      end do
+
+      ! newline
+      write(u, *)
+    end do
+
+  end subroutine display_graph
 
 
   ! dp_format
