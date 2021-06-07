@@ -6,8 +6,8 @@ module m_io
   implicit none
 
   private
-  public :: write_vector, write_matrix, write_functions, display_vector, &
-      display_matrix, display_functions, display_graph
+  public :: write_vector, write_matrix, write_functions, &
+      display_vector, display_matrix, display_functions, display_graph
 
 contains
 

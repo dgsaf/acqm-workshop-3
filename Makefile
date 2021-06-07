@@ -221,6 +221,7 @@ clean_bin :
 obj/m_random.o : obj/m_parameters.o
 obj/m_io.o : obj/m_parameters.o
 obj/m_diffeq.o : obj/m_parameters.o
+obj/m_schrodinger.o : obj/m_parameters.o obj/m_diffeq.o obj/m_integrate.o
 
 # implicit rule for arbitrary fortan targets
 obj/%.o : $(firstword $(addprefix src/%,$(EXTS)))
