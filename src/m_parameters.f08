@@ -24,7 +24,8 @@ module m_parameters
   double precision , parameter :: NEAR_ZERO = TINY(1.0d0)
   double precision , parameter :: INFINITY = HUGE(1.0d0)
   double precision , parameter :: PI = 4.0d0*DATAN(1.0d0)
-  double precision , parameter :: TOLERANCE = EPSILON(1.0d0)
+  double precision , parameter :: TOLERANCE = 1.0d-3
+  double precision , parameter :: SMALL = 1.0d-4
 
   ! computational parameters
   integer , parameter :: MAX_ITERATIONS = 1000

@@ -1,7 +1,7 @@
 !>
 module m_diffeq
 
-  use m_parameters, only : INFINITY
+  use m_parameters , only : INFINITY
 
   implicit none
 
@@ -77,13 +77,6 @@ contains
     ! perform forward-numerov method
     step_s_grid(:) = s_grid(:) * (step_size ** 2) / 12.0d0
     step_g_grid(:) = g_grid(:) * (step_size ** 2) / 12.0d0
-
-    ! assume that y_grid(1), y_grid(2) already set
-    ! y_grid(1) = y_1
-
-    ! if (n_x >= 2) then
-    !   y_grid(2) = y_2
-    ! end if
 
     if (n_x >= 3) then
       do ii = 2, n_x - 1
@@ -175,13 +168,6 @@ contains
     ! perform forward-numerov method
     step_s_grid(:) = s_grid(:) * (step_size ** 2) / 12.0d0
     step_g_grid(:) = g_grid(:) * (step_size ** 2) / 12.0d0
-
-    ! assume that y_grid(n_x), y_grid(n_x-1) already set
-    ! y_grid(n_x) = y_1
-
-    ! if (n_x >= 2) then
-    !   y_grid(n_x-1) = y_2
-    ! end if
 
     if (n_x >= 3) then
       do ii = n_x - 1, 2, -1

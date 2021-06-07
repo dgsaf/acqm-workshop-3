@@ -1,13 +1,14 @@
 !>
 module m_io
 
-  use m_parameters, only : DP_MAX, STDOUT
+  use m_parameters , only : DP_MAX, STDOUT
 
   implicit none
 
   private
   public :: write_vector, write_matrix, write_functions, &
-      display_vector, display_matrix, display_functions, display_graph
+      display_vector, display_matrix, display_functions, display_graph, &
+      dp_trim, int_trim
 
 contains
 
