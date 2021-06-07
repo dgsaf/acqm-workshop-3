@@ -1,10 +1,9 @@
 !>
 module io
 
-  implicit none
+  use m_parameters, only : DP_MAX
 
-  ! global flags
-  integer , parameter :: dp_default = 4
+  implicit none
 
 contains
 
@@ -91,7 +90,7 @@ contains
     if (present(dp)) then
       d = dp
     else
-      d = dp_default
+      d = DP_MAX
     end if
 
     w = max(ceiling(log10(maxval(abs(x(:))))), 1) + d + 3
@@ -128,7 +127,7 @@ contains
     if (present(dp)) then
       d = dp
     else
-      d = dp_default
+      d = DP_MAX
     end if
 
     w = max(ceiling(log10(maxval(abs(A(:, :))))), 1) + d + 3
@@ -170,7 +169,7 @@ contains
     if (present(dp)) then
       d = dp
     else
-      d = dp_default
+      d = DP_MAX
     end if
 
     w = max(ceiling(log10(maxval(abs(basis(:, :))))), 1) + d + 3
@@ -198,5 +197,98 @@ contains
     end do
 
   end subroutine display_basis
+
+
+  ! dp_format
+  !
+  ! Brief:
+  ! Determines the decimal precision and width edit descriptors required for
+  ! pretty-printing the double precision values of an array.
+  ! The decimal precision can be optionally provided as an argument, and is
+  ! otherwise determined by the global parameter `DP_MAX`.
+  ! The width is determined to be the minimum width required to print any
+  ! element of the array, positive or negative, with the required level of
+  ! decimal precision.
+  subroutine dp_format (n, x, dp, w, d)
+    integer , intent(in) :: n
+    double precision , intent(in) :: x(n)
+    integer , optional , intent(in) :: dp
+    integer , intent(out) :: w, d
+    ! ! alternative method variables
+    ! character(len=100) :: temp, fmt_temp, str_d
+    ! integer :: l
+    ! integer :: ii
+
+
+    ! determine decimal places, either from optional argument or predefined
+    ! global parameter
+    if (present(dp)) then
+      d = dp
+    else
+      d = DP_MAX
+    end if
+
+    ! determine minimum width required
+    w = max(ceiling(log10(maxval(abs(x(:))))), 1) + d + 3
+
+    ! ! alternative method
+    ! write (str_d, "(i)") d
+    ! write (fmt_temp, "(i)") "(f0.", trim(adjustl(str_d)), ")"
+    ! l = 0
+    ! do ii = 1, n
+    !   write (temp, fmt_temp) x(ii)
+    !   l = max(l, len(trim(adjustl(temp))))
+    ! end do
+    ! w = l
+
+  end subroutine dp_format
+
+  ! dp_format_string
+  !
+  ! Brief:
+  ! Given the decimal precision and width edit descriptors for pretty-printing a
+  ! double precision array, construct a format string suitable for using in
+  ! i/o statements.
+  function dp_format_string (w, d) result (str)
+    integer , intent(in) :: w, d
+    character(:) , allocatable , intent(out) :: str
+    character(len=100) :: str_w, str_d, str_temp
+    integer :: l
+
+    ! write width, decimal precision to string
+    write (str_w, *) w
+    write (str_d, *) d
+
+    ! write format string
+    write (str_temp, *) &
+        "(f", trim(adjustl(str_w)), ".", trim(adjustl(str_d)), ")"
+
+    ! determine length of (non-empty part of) string
+    l = len(trim(adjustl(str_temp)))
+
+    ! write compacted format string (uses minimal space)
+    allocate(str(l))
+
+    write (str, *) "(f", trim(adjustl(str_w)), ".", trim(adjustl(str_d)), ")"
+
+  end function dp_format_string
+
+  ! dp_zero_string
+  !
+  ! Brief:
+  ! Given the decimal precision and width edit descriptors for pretty-printing a
+  ! double precision array, construct a string used to represent values which
+  ! would otherwise be displayed as " ... 0.0...0".
+  ! Currently, this string is constructed as " . " with the decimal place
+  ! aligned with non-zero elements.
+  function dp_zero_string (w, d) result (str)
+    integer , intent(in) :: w, d
+    character(len=w) , intent(out) :: str
+
+    ! write zero string
+    str = repeat(' ', w)
+    str(w-d) = '.'
+
+  end function dp_zero_string
 
 end module io

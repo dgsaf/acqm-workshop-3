@@ -27,8 +27,8 @@ contains
   ! fourth-order accuracy using the forward Numerov method.
   !
   ! Input:
-  ! - `step_size` is the distance between consecutive points on the grid $X$.
   ! - `n_x` is the number of grid points.
+  ! - `step_size` is the distance between consecutive points on the grid $X$.
   ! - `s_grid` is the evaluation of $s(x)$ on the grid $X$.
   ! - `g_grid` is the evaluation of $g(x)$ on the grid $X$.
   ! - `y_1` is the evaluation of $y(x_{1})$.
@@ -43,10 +43,10 @@ contains
   !   - `status == -1` indicates that a numerical error (NaN or infinity)
   !     occured during execution.
   !
-  subroutine numerov_f (step_size, n_x, s_grid, g_grid, y_1, y_2, y_grid, &
+  subroutine numerov_f (n_x, step_size, s_grid, g_grid, y_1, y_2, y_grid, &
       status)
-    double precision , intent(in) :: step_size
     integer , intent(in) :: n_x
+    double precision , intent(in) :: step_size
     double precision , intent(in) :: s_grid(n_x)
     double precision , intent(in) :: g_grid(n_x)
     double precision , intent(in) :: y_1, y_2
