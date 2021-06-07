@@ -12,18 +12,21 @@ module m_parameters
 
   implicit none
 
+  ! file units
+  integer , parameter :: STDIN = input_unit
+  integer , parameter :: STDOUT = output_unit
+  integer , parameter :: STDERR = error_unit
+
+  ! pretty printing parameters
+  integer , parameter :: DP_MAX = 4
+
   ! numeric parameters
   double precision , parameter :: NEAR_ZERO = TINY(1.0d0)
   double precision , parameter :: INFINITY = HUGE(1.0d0)
   double precision , parameter :: PI = 4.0d0*DATAN(1.0d0)
   double precision , parameter :: TOLERANCE = EPSILON(1.0d0)
 
-  ! pretty printing parameters
-  integer , parameter :: DP_MAX = 4
-
-  ! file units
-  integer , parameter :: STDIN = input_unit
-  integer , parameter :: STDOUT = output_unit
-  integer , parameter :: STDERR = error_unit
+  ! computational parameters
+  integer , parameter :: MAX_ITERATIONS = 1000
 
 end module m_parameters

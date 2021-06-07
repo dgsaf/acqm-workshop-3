@@ -93,7 +93,7 @@ contains
             + (step_s_grid(ii+1) + 10.0d0*step_s_grid(ii) + step_s_grid(ii-1)) &
             ) / (1.0d0 + step_g_grid(ii+1))
 
-        ! check for and handle numerical error (NaN or Infinity)
+        ! check for and handle numerical error (NaN or Infinity) and terminates
         if ((y_grid(ii+1) /= y_grid(ii+1)) .or. (y_grid(ii+1) > INFINITY)) then
           status = -1
 
@@ -191,7 +191,7 @@ contains
             + (step_s_grid(ii+1) + 10.0d0*step_s_grid(ii) + step_s_grid(ii-1)) &
             ) / (1.0d0 + step_g_grid(ii-1))
 
-        ! check for and handle numerical error (NaN or Infinity)
+        ! check for and handle numerical error (NaN or Infinity) and terminates
         if ((y_grid(ii-1) /= y_grid(ii-1)) .or. (y_grid(ii-1) > INFINITY)) then
           status = -1
 
