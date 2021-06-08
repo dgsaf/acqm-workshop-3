@@ -500,7 +500,7 @@ contains
     double precision :: g_grid(n_x), s_grid(n_x)
     double precision :: psi_l_grid(n_x), psi_r_grid(n_x), temp(n_x)
     logical :: matched
-    integer :: i_m
+    integer :: i_m, m
     integer :: ii
 
     ! debug
@@ -535,7 +535,7 @@ contains
 
     ! set up boundary conditions
     psi_grid(1) = 0.0d0
-    psi_grid(2) = SMALL * ((-1) ** n)
+    psi_grid(2) = SMALL * dble((-1) ** n)
     psi_grid(3:n_x-2) = 0.0d0
     psi_grid(n_x-1) = SMALL
     psi_grid(n_x) = 0.0d0
@@ -564,25 +564,15 @@ contains
       return
     end if
 
-    ! ! debug
-    ! write (*, *) "abs(psi_l_grid(:) - psi_r_grid(:))"
-    ! temp(:) = abs(psi_l_grid(:) - psi_r_grid(:))
-    ! call display_graph(n_x, x_grid, temp, &
-    !     left=-1.0d0, right=1.0d0, bottom = -0.5d0, top=0.5d0)
-
     ! locate where psi_l and psi_r match up
-    matched = .false.
-    i_m = 0
-    ii = n_x/3
-    do while ((ii <= n_x) .and. (.not. matched))
-      matched = (abs(psi_l_grid(ii) - psi_r_grid(ii)) < TOLERANCE) &
-          .and. (abs(psi_l_grid(ii)) > SMALL)
+    i_m = minloc(abs(psi_l_grid(:) - psi_r_grid(:)), 1)
 
-      if (matched) then
-        i_m = ii
-      else
-        ii = ii + 1
-      end if
+    matched = .false.
+    do while ((i_m <= n_x) .and. (.not. matched))
+      matched = (abs(psi_l_grid(i_m)) > SMALL) &
+          .and. (abs(psi_r_grid(i_m)) > SMALL)
+
+      if (.not. matched) i_m = i_m + 1
     end do
 
     ! terminate subroutine if psi_l, psi_r could not be matched
@@ -592,19 +582,13 @@ contains
       write (*, *) "failed to match"
       write (*, *) "<psi_l_grid>"
       ! call display_vector(n_x, psi_l_grid)
-      call display_graph(n_x, x_grid, psi_l_grid, bottom=-10.0d0, top=10.0d0)
+      call display_graph(n_x, x_grid, psi_l_grid)
       write (*, *) "<psi_r_grid>"
       ! call display_vector(n_x, psi_r_grid)
-      call display_graph(n_x, x_grid, psi_r_grid, bottom=-10.0d0, top=10.0d0)
+      call display_graph(n_x, x_grid, psi_r_grid)
       write (*, *) "exiting solve_numerov()"
       return
     end if
-
-    ! ! debug
-    ! write (*, *) "<psi_l_grid>"
-    ! call display_graph(n_x, x_grid, psi_l_grid)
-    ! write (*, *) "<psi_r_grid>"
-    ! call display_graph(n_x, x_grid, psi_r_grid)
 
     ! stich psi together from psi_l, psi_r
     do ii = 1, i_m
@@ -615,9 +599,9 @@ contains
       psi_grid(ii) = psi_r_grid(ii) / psi_r_grid(i_m)
     end do
 
-    ! ! debug
-    ! write (*, *) "<psi_grid>"
-    ! call display_graph(n_x, x_grid, psi_grid)
+    ! debug
+    write (*, *) "<psi_grid>"
+    call display_graph(n_x, x_grid, psi_grid)
 
     ! calculate cooley's energy correction
     correction = cooley_correction(n_x, step_size, v_grid, energy, &
@@ -639,7 +623,7 @@ contains
     double precision , intent(in) :: psi_grid(n_x)
     integer , intent(in) :: i_m
     double precision :: correction
-    double precision :: g_grid(n_x), y_grid(0:n_x+1)
+    double precision :: g_grid(n_x), y_grid(0:n_x+1), temp_grid(n_x)
     double precision :: overlap, energy_diff, numerov_term
     integer :: ii
 
@@ -647,11 +631,11 @@ contains
     write (*, *) "cooley_correction()"
 
     ! grid variables
-    g_grid(:) = 2.0d0*(v_grid(:) - energy)
+    g_grid(:) = -2.0d0*(v_grid(:) - energy)
 
     y_grid(0) = 0.0d0
     do ii = 1, n_x
-      y_grid(ii) = (1.0d0 - (((step_size ** 2)*g_grid(ii))/12.0d0))*psi_grid(ii)
+      y_grid(ii) = (1.0d0 + (((step_size ** 2)*g_grid(ii))/12.0d0))*psi_grid(ii)
     end do
     y_grid(n_x+1) = 0.0d0
 
@@ -660,12 +644,27 @@ contains
     do ii = 1, n_x
       overlap = overlap + (abs(psi_grid(ii)) ** 2)
     end do
+    overlap = overlap*step_size
 
-    numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
+    temp_grid(1) = 0.0d0
+    temp_grid(n_x) = 0.0d0
+    energy_diff = 0.0d0
+    do ii = 2, n_x-1
+      numerov_term = y_grid(ii+1) - 2.0d0*y_grid(ii) + y_grid(ii-1)
+      ! numerov_term = psi_grid(ii+1) - 2.0d0*psi_grid(ii) + psi_grid(ii-1)
 
-    energy_diff = psi_grid(i_m)*( &
-        (v_grid(i_m) - energy)*psi_grid(i_m) &
-        - ((0.5d0*numerov_term)/(step_size ** 2)))
+      temp_grid(ii) = ((v_grid(ii) - energy)*psi_grid(ii)) &
+          - ((0.5d0*numerov_term)/(step_size ** 2))
+      energy_diff = energy_diff + (psi_grid(ii) * temp_grid(ii))
+    end do
+    energy_diff=energy_diff*step_size
+
+    ! numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
+
+    ! energy_diff = psi_grid(i_m)*( &
+    !     (v_grid(i_m) - energy)*psi_grid(i_m) &
+    !     - ((0.5d0*numerov_term)/(step_size ** 2)))
+    ! energy_diff=energy_diff*step_size
 
     correction = energy_diff / overlap
 
@@ -760,6 +759,7 @@ contains
     end do
 
     nodes = definite_nodes
+    ! nodes = possible_nodes
 
     ! debug
     ! write (*, *) "definite_nodes = ", int_trim(definite_nodes)

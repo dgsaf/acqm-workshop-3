@@ -9,7 +9,7 @@ program p_test_schrodinger
 
   implicit none
 
-  integer , parameter :: n_x = 1001
+  integer , parameter :: n_x = 10001
   double precision , parameter :: omega = 1.0d0
   double precision , parameter :: step_size = 10.0d0/dble(n_x)
   integer , parameter :: n_wf = 10
