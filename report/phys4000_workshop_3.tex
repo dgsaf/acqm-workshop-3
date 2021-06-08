@@ -29,20 +29,6 @@
 \pgfplotstableread{\itfile{sb}}{\itsb}
 \pgfplotstableread{\itfile{nc}}{\itnc}
 
-% \def\kpowset{1024,2048,4096,8192,16384,32768,65536,131072}
-% \def\kset{10,11,12,13,14,15,16,17}
-% \def\kmin{10}
-% \def\kmax{17}
-
-\def\kpowset{1024,2048,4096}
-\def\kset{10,11,12}
-\def\kmin{10}
-\def\kmax{12}
-
-\def\nset{0,1,2,3}
-\def\nmin{0}
-\def\nmax{3}
-
 % - document
 \begin{document}
 
@@ -86,8 +72,15 @@ method with, are compared with the analytic wavefunctions in
   \begin{center}
     \input{wf_sb.tex}
   \end{center}
-  \caption[Bleh]{
-    Blah blah.
+  \caption[S-B Wavefunctions]{
+    The $n = 0, \dotsc, 3$ vibrational wavefunctions, calculated using the
+    shooting-bisection method for $k = 15$ (shown in blue), are compared with
+    the analytic wavefunctions (shown in red).
+    The potential is also presented for clarity (shown in black).
+    Note that the calculated wavefunctions have been shifted and scaled to
+    $\psi_{i} \to \tfrac{1}{2}\psi_{i} + E_{i}$, while the analytic
+    wavefunctions have been shifted and scaled to
+    $\psi_{i} \to \tfrac{1}{2}\psi_{i} + E_{i} + 0.05$.
   }
   \label{fig:qho-wf-sb}
 \end{figure}
@@ -99,8 +92,17 @@ method, are compared with the analytic wavefunctions in \autoref{fig:qho-wf-nc}.
   \begin{center}
     \input{wf_nc.tex}
   \end{center}
-  \caption[Bleh]{
-    Blah blah.
+  \caption[N-C Wavefunctions]{
+    The $n = 0, \dotsc, 3$ vibrational wavefunctions, calculated using the
+    Numerov-Cooley method for $k = 15$ (shown in blue), are compared with the
+    analytic wavefunctions (shown in red).
+    The potential is also presented for clarity (shown in black).
+    Note that the calculated wavefunctions have been shifted and scaled to
+    $\psi_{i} \to \tfrac{1}{2}\psi_{i} + E_{i}$, while the analytic
+    wavefunctions have been shifted and scaled to
+    $\psi_{i} \to \tfrac{1}{2}\psi_{i} + E_{i} + 0.05$.
+    Note also that $n = 1$ calculated wavefunction has a phase shift of $-1$,
+    which is an arbitrary artifact of the calculation.
   }
   \label{fig:qho-wf-nc}
 \end{figure}
@@ -108,7 +110,310 @@ method, are compared with the analytic wavefunctions in \autoref{fig:qho-wf-nc}.
 \subsection*{Energies}
 \label{sec:qho-energies}
 
+The $n = 0, \dotsc, 3$ vibrational energies, calculated using the
+shooting-bisection method, are compared with the analytic energies in
+\autoref{tab:qho-en-sb}.
+
+\begin{table}[h]
+  \begin{center}
+    \pgfplotstabletypeset
+    [ multicolumn names
+    , col sep=space
+    , display columns/0/.style={
+      column name={$k = 10$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/1/.style={
+      column name={$k = 11$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/2/.style={
+      column name={$k = 12$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/3/.style={
+      column name={$k = 13$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/4/.style={
+      column name={$k = 14$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/5/.style={
+      column name={$k = 15$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/6/.style={
+      column name={$k = 16$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/7/.style={
+      column name={$k = 17$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/8/.style={
+      column name={Analytic}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , every head row/.style={
+      before row={\toprule}
+      , after row={\midrule}
+    }
+    , every last row/.style={
+      after row=\bottomrule
+    }
+    ]{\enfile{sb}}
+  \end{center}
+  \caption[S-B Energies]{
+    The $n = 0, \dotsc, 3$ vibrational energies, calculated using the
+    shooting-bisection method for $k = 10, \dotsc, 17$, are presented and
+    compared with the analytic energies, to 6 significant figures.
+    It can be seen that they are already convergent to the analytic energies by
+    $k = 12$ - perhaps smaller grid sizes should be investigated further.
+  }
+  \label{tab:qho-en-sb}
+\end{table}
+
+The $n = 0, \dotsc, 3$ vibrational energies, calculated using the
+Numerov-Cooley method, are compared with the analytic energies in
+\autoref{tab:qho-en-nc}.
+
+\begin{table}[h]
+  \begin{center}
+    \pgfplotstabletypeset
+    [ multicolumn names
+    , col sep=space
+    , display columns/0/.style={
+      column name={$k = 10$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/1/.style={
+      column name={$k = 11$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/2/.style={
+      column name={$k = 12$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/3/.style={
+      column name={$k = 13$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/4/.style={
+      column name={$k = 14$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/5/.style={
+      column name={$k = 15$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/6/.style={
+      column name={$k = 16$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/7/.style={
+      column name={$k = 17$}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , display columns/8/.style={
+      column name={Analytic}
+      , fixed
+      , fixed zerofill
+      , dec sep align
+      , precision=5
+    }
+    , every head row/.style={
+      before row={\toprule}
+      , after row={\midrule}
+    }
+    , every last row/.style={
+      after row=\bottomrule
+    }
+    ]{\enfile{nc}}
+  \end{center}
+  \caption[N-C Energies]{
+    The $n = 0, \dotsc, 3$ vibrational energies, calculated using the
+    Numerov-Cooley method for $k = 10, \dotsc, 17$, are presented and
+    compared with the analytic energies, to 6 significant figures.
+    It can be seen that they are already convergent to the analytic energies by
+    $k = 10$ - perhaps smaller grid sizes should be investigated further.
+  }
+  \label{tab:qho-en-nc}
+\end{table}
+
 \subsection*{Iterations}
 \label{sec:qho-iterations}
+
+The number of iterations required to calculate the $n = 0, \dotsc, 3$
+vibrational energies and wavefunctions using the shooting-bisection method, for
+$k = 10, \dotsc, 17$, is presented in \autoref{tab:qho-it-sb}.
+
+\begin{table}[h]
+  \begin{center}
+    \pgfplotstabletypeset
+    [ multicolumn names
+    , col sep=space
+    , display columns/0/.style={
+      column name={$k = 10$}
+      , fixed
+    }
+    , display columns/1/.style={
+      column name={$k = 11$}
+      , fixed
+    }
+    , display columns/2/.style={
+      column name={$k = 12$}
+      , fixed
+    }
+    , display columns/3/.style={
+      column name={$k = 13$}
+      , fixed
+    }
+    , display columns/4/.style={
+      column name={$k = 14$}
+      , fixed
+    }
+    , display columns/5/.style={
+      column name={$k = 15$}
+      , fixed
+    }
+    , display columns/6/.style={
+      column name={$k = 16$}
+      , fixed
+    }
+    , display columns/7/.style={
+      column name={$k = 17$}
+      , fixed
+    }
+    , every head row/.style={
+      before row={\toprule}
+      , after row={\midrule}
+    }
+    , every last row/.style={
+      after row=\bottomrule
+    }
+    ]{\itfile{sb}}
+  \end{center}
+  \caption[S-B Iterations]{
+    The number of iterations required to calculate the $n = 0, \dotsc, 3$
+    vibrational energies and wavefunctions using the shooting-bisection method,
+    for $k = 10, \dotsc, 17$, are presented.
+  }
+  \label{tab:qho-it-sb}
+\end{table}
+
+The number of iterations required to calculate the $n = 0, \dotsc, 3$
+vibrational energies and wavefunctions using the Numerov-Cooley method, for
+$k = 10, \dotsc, 17$, is presented in \autoref{tab:qho-it-nc}.
+
+\begin{table}[h]
+  \begin{center}
+    \pgfplotstabletypeset
+    [ multicolumn names
+    , col sep=space
+    , display columns/0/.style={
+      column name={$k = 10$}
+      , fixed
+    }
+    , display columns/1/.style={
+      column name={$k = 11$}
+      , fixed
+    }
+    , display columns/2/.style={
+      column name={$k = 12$}
+      , fixed
+    }
+    , display columns/3/.style={
+      column name={$k = 13$}
+      , fixed
+    }
+    , display columns/4/.style={
+      column name={$k = 14$}
+      , fixed
+    }
+    , display columns/5/.style={
+      column name={$k = 15$}
+      , fixed
+    }
+    , display columns/6/.style={
+      column name={$k = 16$}
+      , fixed
+    }
+    , display columns/7/.style={
+      column name={$k = 17$}
+      , fixed
+    }
+    , every head row/.style={
+      before row={\toprule}
+      , after row={\midrule}
+    }
+    , every last row/.style={
+      after row=\bottomrule
+    }
+    ]{\itfile{nc}}
+  \end{center}
+  \caption[N-C Iterations]{
+    The number of iterations required to calculate the $n = 0, \dotsc, 3$
+    vibrational energies and wavefunctions using the Numerov-Cooley method,
+    for $k = 10, \dotsc, 17$, are presented.
+  }
+  \label{tab:qho-it-nc}
+\end{table}
+
+\clearpage
+
+\section{Dissociative Wave Functions for $\rm{H}_{2}^{+}$}
+\label{sec:dissociative}
 
 \end{document}
