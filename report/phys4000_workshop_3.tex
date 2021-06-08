@@ -1,7 +1,10 @@
-\documentclass[draft]{article}
+\documentclass{article}
 
 % - style template
 \usepackage{base}
+
+\usetikzlibrary{external}
+\tikzexternalize[mode=list and make]
 
 % - title, author, etc.
 \title{PHYS4000 - Workshop 3}
@@ -75,19 +78,29 @@
       , grid = major
       , xmin = -5.0
       , xmax =  5.0
-      , ymin = -1.0
-      , ymax =  6.0
+      , ymin = -0.5
+      , ymax =  4.5
       , xlabel = {$x$}
       , ylabel = {Energy}
       , x unit = {a_{0}}
       , y unit = {Ha}
+      , restrict x to domain = -5.5:5.5
+      , restrict y to domain = -1.0:5.0
       , legend entries
       , legend style = {
         cells = {anchor=east}
-        , legend pos = north east
+        , legend pos = south east
         , font = \tiny
       }
       ]
+
+      \pgfmathdeclarefunction{v}{1}{\pgfmathparse{0.5*(#1)*(#1)}}
+
+      \addplot [
+      color = blue
+      , domain = -5.0:5.0
+      , samples = 100
+      ]({x} , {v(x)});
 
       \pgfplotstableread{\wffile{1024}{an}}{\wfan}
 
@@ -99,11 +112,35 @@
           color = red!\c!black
           ] table [
           x index = 0
-          , y expr = \noexpand\thisrowno{\idx} + \n + 0.5
+          , y expr = (0.5*\noexpand\thisrowno{\idx}) + \n + 0.5
           ]{\noexpand\wfan};
           \noexpand\addlegendentry{$\idx$}
         }\temp
       }
+
+      % \foreach\k in \kset{
+      %   \pgfmathtruncatemacro{\kpow}{pow(2, \k)}
+      %   \pgfplotstableread{\wffile{\kpow}{sb}}{\wfsb}
+
+      %   \pgfmathtruncatemacro{\jdx}{\k - \kmin + 1}
+      %   \pgfmathtruncatemacro{\d}{100.0*real(\k - \kmin)/real(\kmax - \kmin)}
+      %   \foreach\n in \nset{
+      %     \pgfmathtruncatemacro{\idx}{\n - \nmin + 1}
+      %     \pgfmathtruncatemacro{\c}{100.0*real(\n - \nmin)/real(\nmax - \nmin)}
+
+      %     \edef\temp{
+      %       \noexpand\addplot [
+      %       color = blue!\d!black
+      %       ] table [
+      %       x index = 0
+      %       , y expr = (0.5*\noexpand\thisrowno{\idx}) + \n + 0.5
+      %       ]{\noexpand\wfsb};
+      %       % \noexpand\addlegendentry{$\idx$}
+      %     }\temp
+      %   }
+
+      %   \pgfplotstableclear{\wfsb}
+      % }
 
       % \addlegendentryexpanded{$\lr{\delta x}_{\idx} = 10*2^{-\k}$}
 
