@@ -4,8 +4,8 @@
 \usepackage{base}
 
 % - title, author, etc.
-\title{TITLE}
-\author{AUTHOR}
+\title{PHYS4000 - Workshop 3}
+\author{Tom Ross - 1834 2884}
 \date{\today}
 
 % - headers
@@ -18,6 +18,31 @@
 \cfoot{}
 \lfoot{}
 
+% - output files
+\newcommand{\wffile}[2]{../output/qho/wf.n_x-#1.#2.txt}
+\newcommand{\enfile}[1]{../output/qho/en.#1.txt}
+\newcommand{\itfile}[1]{../output/qho/it.#1.txt}
+
+\pgfplotstableread{\enfile{sb}}{\ensb}
+\pgfplotstableread{\enfile{nc}}{\ennc}
+
+\pgfplotstableread{\itfile{sb}}{\itsb}
+\pgfplotstableread{\itfile{nc}}{\itnc}
+
+% \def\kpowset{1024,2048,4096,8192,16384,32768,65536,131072}
+% \def\kset{10,11,12,13,14,15,16,17}
+% \def\kmin{10}
+% \def\kmax{17}
+
+\def\kpowset{1024,2048,4096}
+\def\kset{10,11,12}
+\def\kmin{10}
+\def\kmax{12}
+
+\def\nset{0,1,2,3}
+\def\nmin{0}
+\def\nmax{3}
+
 % - document
 \begin{document}
 
@@ -28,5 +53,83 @@
 \listoftables
 
 \clearpage
+
+\section{Quantum Harmonic Oscillator}
+\label{sec:qho}
+
+\subsection*{Discussion of Theory}
+\label{sec:qho-theory}
+
+\subsection*{Wavefunctions}
+\label{sec:qho-wavefunctions}
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      use units
+      , scale = 1.0
+      , title = {
+        TITLE
+      }
+      , grid = major
+      , xmin = -5.0
+      , xmax =  5.0
+      , ymin = -1.0
+      , ymax =  6.0
+      , xlabel = {$x$}
+      , ylabel = {Energy}
+      , x unit = {a_{0}}
+      , y unit = {Ha}
+      , legend entries
+      , legend style = {
+        cells = {anchor=east}
+        , legend pos = north east
+        , font = \tiny
+      }
+      ]
+
+      \pgfplotstableread{\wffile{1024}{an}}{\wfan}
+
+      \foreach\n in \nset{
+        \pgfmathtruncatemacro{\idx}{\n - \nmin + 1}
+        \pgfmathtruncatemacro{\c}{100.0*real(\n - \nmin)/real(\nmax - \nmin)}
+        \edef\temp{
+          \noexpand\addplot [
+          color = red!\c!black
+          ] table [
+          x index = 0
+          , y expr = \noexpand\thisrowno{\idx} + \n + 0.5
+          ]{\noexpand\wfan};
+          \noexpand\addlegendentry{$\idx$}
+        }\temp
+      }
+
+      % \addlegendentryexpanded{$\lr{\delta x}_{\idx} = 10*2^{-\k}$}
+
+      % \pgfplotstableread[
+      % col sep = space
+      % , header = false
+      % ]{\wffile{1024}{an}}{\data}
+
+      % \addplot [
+      % color = black
+      % , mark = diamond*
+      % ] table [x index = {0}, y index = {1}] \data;
+      % \addlegendentry{\lstinline{cpu_elapsed_time}}
+
+    \end{axis}
+  \end{tikzpicture}
+  \caption[Bleh]{
+    Blah blah.
+  }
+  \label{fig:qho-wavefunctions}
+\end{figure}
+
+\subsection*{Energies}
+\label{sec:qho-energies}
+
+\subsection*{Iterations}
+\label{sec:qho-iterations}
 
 \end{document}
