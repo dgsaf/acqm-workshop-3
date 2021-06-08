@@ -9,10 +9,10 @@ program p_test_schrodinger
 
   implicit none
 
-  integer , parameter :: n_x = 10001
-  double precision , parameter :: step_size = 1.0d-3
+  integer , parameter :: n_x = 50000
   double precision , parameter :: omega = 1.0d0
-  integer , parameter :: n_wf = 10
+  double precision , parameter :: step_size = 10.0d0/dble(n_x)
+  integer , parameter :: n_wf = 20
   double precision :: wf(n_x, n_wf)
   double precision :: energies(n_wf)
   integer :: status = 0
@@ -43,8 +43,8 @@ program p_test_schrodinger
   ! visualise
   write (*, *) "wavefunctions"
   do ii = 1, n_wf
-  write (*, *) "ii"
-    call display_graph(n_x, x_grid, wf(:, ii))
+    write (*, *) "n = ", int_trim(ii)
+    call display_graph(n_x, x_grid, wf(:, ii), width=80, height=30)
   end do
 
 contains

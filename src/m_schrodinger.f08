@@ -1,11 +1,11 @@
 !>
 module m_schrodinger
 
-  use m_parameters , only : TOLERANCE, MAX_ITERATIONS, SMALL
+  use m_parameters , only : TOLERANCE, MAX_ITERATIONS, SMALL, INFINITY
   use m_diffeq , only : numerov_f, numerov_b
   use m_integrate , only : integrate_trapezoid
 
-  ! debug
+  ! debugging
   use m_io
 
   implicit none
@@ -35,6 +35,10 @@ contains
     double precision :: v_grid(n_x)
     integer :: ii, nn
 
+    ! debug
+    write (*, *) repeat('=', 80)
+    write (*, *) "harmonic_oscillator()"
+
     ! initialise x_grid
     do ii = 1, n_x
       x_grid(ii) = step_size*(dble(ii) - dble(n_x + 1)/2.0d0)
@@ -46,21 +50,165 @@ contains
     end do
 
     do nn = 1, n_wf
-      call numerov_cooley(n_x, step_size, x_grid, omega, v_grid, nn-1, &
+      call shooting_bisection(n_x, step_size, x_grid, omega, v_grid, nn-1, &
           wf(:, nn), energies(nn), status)
 
       ! terminate subroutine if numerov_cooley failed
       if (status /= 0) then
         wf(:, nn:n_wf) = 0.0d0
         energies(nn:n_wf) = 0.0d0
-        write (*, *) "numerov_cooley() failed"
+        write (*, *) "shooting_bisection() failed"
         write (*, *) "exiting harmonic_oscillator()"
         return
       end if
     end do
 
+    ! debug
+    write (*, *) "end harmonic_oscillator()"
+    write (*, *) repeat('=', 80)
+
   end subroutine harmonic_oscillator
 
+
+  ! shooting_bisection
+  subroutine shooting_bisection (n_x, step_size, x_grid, omega, v_grid, n, &
+      psi_grid, energy, status)
+    integer , intent(in) :: n_x
+    double precision , intent(in) :: step_size
+    double precision , intent(in) :: x_grid(n_x)
+    double precision , intent(in) :: omega
+    double precision , intent(in) :: v_grid(n_x)
+    integer , intent(in) :: n
+    double precision , intent(out) :: psi_grid(n_x)
+    double precision , intent(out) :: energy
+    integer , intent(out) :: status
+    double precision :: energy_min, energy_max
+    double precision :: norm
+    integer :: nodes
+    logical :: found
+    integer :: ii, jj
+
+    ! debug
+    write (*, *) repeat('-', 80)
+    write (*, *) "shooting_bisection()"
+    write (*, *) "<n_x> = ", int_trim(n_x)
+    write (*, *) "<step_size> = ", dp_trim(step_size)
+    write (*, *) "<n> = ", int_trim(n)
+
+    ! estimate energy_min, energy_max
+    energy_min = 0.0d0
+    energy_max = 5.0d0*dble(n+1)*omega
+
+    ! loop
+    found = .false.
+    ii = 0
+    do while ((ii <= MAX_ITERATIONS) .and. (.not. found))
+      ii = ii + 1
+
+      ! debug
+      write (*, *)
+      write (*, *) "iteration: ", int_trim(ii)
+      write (*, *) "<energy_min> = ", dp_trim(energy_min, dp=6)
+      write (*, *) "<energy_max> = ", dp_trim(energy_max, dp=6)
+
+      energy = (energy_min + energy_max) / 2.0d0
+
+      ! debug
+      write (*, *) "<energy> = ", dp_trim(energy)
+
+      ! solve schrodinger differential equation for psi_grid
+      call solve_finite_diff(n_x, step_size, x_grid, v_grid, energy, n, &
+          psi_grid, status)
+
+      ! terminate subroutine if solve_finite_diff failed
+      if (status /= 0) then
+        psi_grid(:) = 0.0d0
+        write (*, *) "solve_finite_diff() failed"
+        write (*, *) "exiting shooting_bisection"
+        return
+      end if
+
+      ! count nodes
+      nodes = count_nodes(n_x, psi_grid(:))
+
+      ! debug
+      write (*, *) "<nodes> = ", int_trim(nodes)
+
+      ! if wrong number of nodes, recalibrate energy_min, energy_max and cycle
+      ! otherwise proceed
+      if (nodes < n) then
+        energy_min = energy
+
+        ! debug
+        write (*, *) "too few nodes"
+        write (*, *) "setting <energy_min> = ", dp_trim(energy_min)
+        write (*, *) "cycling"
+        cycle
+      else if (nodes > n) then
+        energy_max = energy
+
+        ! debug
+        write (*, *) "too many nodes"
+        write (*, *) "setting <energy_max> = ", dp_trim(energy_max)
+        write (*, *) "cycling"
+        cycle
+      end if
+
+      ! debug
+      write (*, *) "correct number of nodes found"
+
+      ! check right-boundary condition
+      if (psi_grid(n_x) > 0.0d0) then
+        energy_min = energy
+
+        ! debug
+        write (*, *) "psi -> +ve infinity"
+        write (*, *) "setting <energy_min> = ", dp_trim(energy_min)
+      else if (psi_grid(n_x) < 0.0d0) then
+        energy_max = energy
+
+        ! debug
+        write (*, *) "psi -> -ve infinity"
+        write (*, *) "setting <energy_max> = ", dp_trim(energy_max)
+      end if
+
+      ! check if convergent
+      ! debug
+      write (*, *) "<energy_diff> = ", dp_trim(abs(energy_max - energy_min))
+      write (*, *) "<psi_grid(n_x)> = ", dp_trim(abs(psi_grid(n_x)))
+
+      if ((abs(energy_max - energy_min) <= TOLERANCE) &
+          .or. (abs(psi_grid(n_x)) < TOLERANCE)) then
+        found = .true.
+      else
+        ! debug
+        write (*, *) "cycling"
+        cycle
+      end if
+    end do
+
+    ! terminate subroutine if correct nodes not found in time
+    ! otherwise proceed
+    if (.not. found) then
+      ! debug
+      call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
+
+      status = -1
+      psi_grid(:) = 0.0d0
+      write (*, *) "convergent <psi_grid> not found in time"
+      write (*, *) "exiting shooting_bisection"
+      return
+    end if
+
+    ! with right energy, normalise psi_grid
+    norm = sqrt(integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2)))
+    psi_grid(:) = psi_grid(:) / norm
+
+    ! debug
+    write (*, *) "end shooting_bisection()"
+    write (*, *) repeat('-', 80)
+
+  end subroutine shooting_bisection
 
   ! numerov_cooley
   !
@@ -109,8 +257,10 @@ contains
     write (*, *) "<n> = ", int_trim(n)
 
     ! estimate energy_min, energy_max
-    energy_min = dble(n)*omega
-    energy_max = dble(n+1)*omega
+    ! energy_min = dble(n)*omega
+    ! energy_max = dble(n+1)*omega
+    energy_min = -1.0d1
+    energy_max =  1.0d1
 
     ! loop
     found = .false.
@@ -120,15 +270,15 @@ contains
 
       energy = (energy_min + energy_max) / 2.0d0
 
-      ! ! solve_symmetric
-      ! call solve_symmetric(n_x, step_size, x_grid, v_grid, energy, n, &
+      ! ! solve_numerov
+      ! call solve_numerov(n_x, step_size, x_grid, v_grid, energy, n, &
       !     psi_grid, correction, status)
 
 
-      ! ! terminate subroutine if solve_symmetric failed
+      ! ! terminate subroutine if solve_numerov failed
       ! if (status /= 0) then
       !   psi_grid(:) = 0.0d0
-      !   write (*, *) "solve_symmetric() failed"
+      !   write (*, *) "solve_numerov() failed"
       !   write (*, *) "exiting numerov_cooley"
       !   return
       ! end if
@@ -175,13 +325,13 @@ contains
 
       energy = energy + correction
 
-      call solve_symmetric(n_x, step_size, x_grid, v_grid, energy, n, &
+      call solve_numerov(n_x, step_size, x_grid, v_grid, energy, n, &
           psi_grid, correction, status)
 
-      ! terminate subroutine if solve_symmetric failed
+      ! terminate subroutine if solve_numerov failed
       if (status /= 0) then
         psi_grid(:) = 0.0d0
-        write (*, *) "solve_symmetric() failed"
+        write (*, *) "solve_numerov() failed"
         write (*, *) "exiting numerov_cooley()"
         return
       end if
@@ -209,8 +359,72 @@ contains
 
   end subroutine numerov_cooley
 
+  ! solve_finite_diff
+  subroutine solve_finite_diff (n_x, step_size, x_grid, v_grid, energy, n, &
+      psi_grid, status)
+    integer , intent(in) :: n_x
+    double precision , intent(in) :: step_size
+    double precision , intent(in) :: x_grid(n_x)
+    double precision , intent(in) :: v_grid(n_x)
+    double precision , intent(in) :: energy
+    integer , intent(in) :: n
+    double precision , intent(out) :: psi_grid(n_x)
+    integer , intent(out) :: status
+    integer :: ii
 
-  ! solve_symmetric
+    ! debug
+    write (*, *) "solve_finite_diff()"
+    ! write (*, *) "<n_x> = ", int_trim(n_x)
+    ! write (*, *) "<step_size> = ", dp_trim(step_size)
+    ! write (*, *) "<energy> = ", dp_trim(energy)
+    ! write (*, *) "<n> = ", int_trim(n)
+
+    ! check if arguments are valid
+    status = 0
+
+    if (n_x < 1) then
+      ! no grid points
+      status = 1
+    end if
+
+    if (step_size < 0.0d0) then
+      ! non-positive step_size
+      status = 2
+    end if
+
+    ! terminate subroutine if arguments are invalid, otherwise proceed
+    if (status /= 0) then
+      psi_grid(:) = 0.0d0
+      return
+    end if
+
+    ! set up left-boundary conditions
+    psi_grid(1) = 0.0d0
+    psi_grid(2) = SMALL*((-1) ** (n))
+
+    ! solve forwards using finite difference method
+    do ii = 2, n_x-1
+      psi_grid(ii+1) = &
+          2.0d0*((step_size ** 2)*(v_grid(ii)-energy) + 1.0d0)*psi_grid(ii) &
+          - psi_grid(ii-1)
+
+      ! check for and handle numerical error (NaN or Infinity) and terminates
+      if ((psi_grid(ii+1) /= psi_grid(ii+1)) &
+          .or. (psi_grid(ii+1) > INFINITY)) then
+        status = -1
+        if (ii + 2 <= n_x) then
+          psi_grid(ii+2:n_x) = 0.0d0
+        end if
+        return
+      end if
+    end do
+
+    ! debug
+    write (*, *) "end solve_finite_diff()"
+
+  end subroutine solve_finite_diff
+
+  ! solve_numerov
   !
   ! Brief:
   ! The 1-D Schrodinger equation, with the Hamiltonian
@@ -238,7 +452,7 @@ contains
   !   - `status == -1` indicates that a numerical error (NaN or infinity)
   !     occured during execution.
   !
-  subroutine solve_symmetric (n_x, step_size, x_grid, v_grid, energy, n, &
+  subroutine solve_numerov (n_x, step_size, x_grid, v_grid, energy, n, &
       psi_grid, correction, status)
     integer , intent(in) :: n_x
     double precision , intent(in) :: step_size
@@ -257,7 +471,7 @@ contains
     integer :: ii
 
     ! debug
-    write (*, *) "solve_symmetric()"
+    write (*, *) "solve_numerov()"
     write (*, *) "<n_x> = ", int_trim(n_x)
     write (*, *) "<step_size> = ", dp_trim(step_size)
     write (*, *) "<energy> = ", dp_trim(energy)
@@ -288,7 +502,7 @@ contains
 
     ! set up boundary conditions
     psi_grid(1) = 0.0d0
-    psi_grid(2) = SMALL * ((-1.0d0) ** n)
+    psi_grid(2) = SMALL * ((-1) ** n)
     psi_grid(3:n_x-2) = 0.0d0
     psi_grid(n_x-1) = SMALL
     psi_grid(n_x) = 0.0d0
@@ -301,10 +515,11 @@ contains
     if (status /= 0) then
       psi_grid(:) = 0.0d0
       write (*, *) "numerov_f() failed"
-      write (*, *) "exiting solve_symmetric()"
+      write (*, *) "exiting solve_numerov()"
       return
     end if
 
+    ! solve backwards numerov
     psi_r_grid(:) = psi_grid(:)
     call numerov_b(n_x, step_size, s_grid, g_grid, psi_r_grid, status)
 
@@ -312,14 +527,14 @@ contains
     if (status /= 0) then
       psi_grid(:) = 0.0d0
       write (*, *) "numerov_b() failed"
-      write (*, *) "exiting solve_symmetric()"
+      write (*, *) "exiting solve_numerov()"
       return
     end if
 
     ! locate where psi_l and psi_r match up
     matched = .false.
     i_m = 0
-    ii = n_x/3
+    ii = n_x/2 - 10
     do while ((ii <= n_x) .and. (.not. matched))
       matched = (abs(psi_l_grid(ii) - psi_r_grid(ii)) < TOLERANCE)
 
@@ -341,7 +556,7 @@ contains
       write (*, *) "<psi_r_grid>"
       ! call display_vector(n_x, psi_r_grid)
       call display_graph(n_x, x_grid, psi_r_grid, bottom=-10.0d0, top=10.0d0)
-      write (*, *) "exiting solve_symmetric()"
+      write (*, *) "exiting solve_numerov()"
       return
     end if
 
@@ -383,9 +598,9 @@ contains
 
     ! debug
     write (*, *) "<correction> = ", dp_trim(correction)
-    write (*, *) "end solve_symmetric()"
+    write (*, *) "end solve_numerov()"
 
-  end subroutine solve_symmetric
+  end subroutine solve_numerov
 
   ! count_nodes
   !
@@ -394,42 +609,94 @@ contains
   function count_nodes (n_x, psi_grid) result (nodes)
     integer , intent(in) :: n_x
     double precision , intent(in) :: psi_grid(n_x)
-    double precision :: p
     integer :: nodes
-    integer :: ii
+    integer :: definite_nodes, possible_nodes
+    integer :: sgn(n_x)
+    integer :: ii, jj
 
-    ! nodes = 0
-    ! do ii = 2, n_x
-    !   p = psi_grid(ii-1) * psi_grid(ii)
-    !   if ((p < 0.0d0) .and. (abs(p) > (SMALL ** 2))) then
-    !     nodes = nodes + 1
-    !   end if
+    ! debug
+    write (*, *) "count_nodes()"
+
+    ! method: sign change advanced
+    where (abs(psi_grid(:)) <= TOLERANCE)
+      sgn(:) = 0
+    elsewhere (psi_grid(:) > TOLERANCE)
+      sgn(:) = 1
+    elsewhere (psi_grid(:) < TOLERANCE)
+      sgn(:) = -1
+    endwhere
+
+    ! ! debug
+    ! do ii = 1, n_x
+    !   write (*, *) ii, psi_grid(ii), sgn(ii)
     ! end do
-    nodes = count_extrema(n_x, psi_grid) - 1
 
-  end function count_nodes
+    ! initialise node counting
+    nodes = 0
+    possible_nodes = 0
+    definite_nodes = 0
 
-  ! count_extrema
-  !
-  ! Brief:
-  ! Counts the number of extrema in an evaluated function.
-  function count_extrema (n_x, psi_grid) result (extrema)
-    integer , intent(in) :: n_x
-    double precision , intent(in) :: psi_grid(n_x)
-    double precision :: p
-    integer :: extrema
-    integer :: ii
+    ! loop through sgn(:) to find sign changes
+    ii = 1
+    do while (ii < n_x)
+      ! write (*, *) "ii, sgn, psi = ", ii, sgn(ii), psi_grid(ii)
 
-    extrema = 0
-    do ii = 2, n_x-1
-      if (((psi_grid(ii-1) < psi_grid(ii)) &
-          .and. (psi_grid(ii+1) < psi_grid(ii))) &
-          .or. ((psi_grid(ii-1) > psi_grid(ii)) &
-          .and. (psi_grid(ii+1) > psi_grid(ii)))) then
-        extrema = extrema + 1
+      ! search for first definitively non-zero point
+      if (sgn(ii) == 0) then
+        ! write (*, *) "cycling for non-zero point"
+        ii = ii + 1
+        cycle
+      end if
+
+      ! write (*, *) "is non-zero"
+
+      ! check if next step has change in sgn(:)
+      if (sgn(ii) /= sgn(ii+1)) then
+        ! write (*, *) "change at ", int_trim(ii), &
+        !     " (", dp_trim(psi_grid(ii)), " -> ", dp_trim(psi_grid(ii+1)), ")"
+
+        possible_nodes = possible_nodes + 1
+
+        ! step past a run of zero or more 0s
+        jj = ii + 1
+        do while (jj <= n_x)
+          ! write (*, *) "zero run: ", jj, sgn(jj)
+          if (sgn(jj) == 0) then
+            ! write (*, *) "continues"
+            jj = jj + 1
+          else
+            ! write (*, *) "finishes"
+            exit
+          end if
+        end do
+        ! write (*, *) "run of ", int_trim(jj - ii - 1), " zeroes"
+
+        ! if sign has changed, is definitely a nodal region
+        if (jj <= n_x) then
+          if (sgn(jj) == -sgn(ii)) then
+            definite_nodes = definite_nodes + 1
+          end if
+        end if
+
+        ii = jj
+      else
+        ii = ii + 1
       end if
     end do
 
-  end function count_extrema
+    nodes = definite_nodes
+
+    ! debug
+    ! write (*, *) "definite_nodes = ", int_trim(definite_nodes)
+    ! write (*, *) "possible_nodes = ", int_trim(possible_nodes)
+    ! write (*, *) "nodes = ", int_trim(nodes)
+    write (*, *) "nodes = ", int_trim(nodes), &
+        " (", int_trim(definite_nodes), " def / ", &
+        int_trim(possible_nodes), " pos)"
+
+    ! debug
+    write (*, *) "end count_nodes()"
+
+  end function count_nodes
 
 end module m_schrodinger

@@ -268,12 +268,14 @@ contains
     ! grid width and height (max 80x80)
     n_x = 80
     if (present(width) .and. (width >= 1)) then
-      n_x = min(width, n_x)
+      ! n_x = min(width, n_x)
+      n_x = width
     end if
 
     n_y = 45
     if (present(height) .and. (height >= 1)) then
-      n_y = min(height, n_y)
+      ! n_y = min(height, n_y)
+      n_y = height
     end if
 
     ! grid x, y segments
@@ -458,22 +460,37 @@ contains
   !
   ! Brief:
   ! Trim a double precision number
-  function dp_trim (x) result (str)
+  function dp_trim (x, dp) result (str)
     double precision , intent(in) :: x
+    integer , optional , intent(in) :: dp
     character(len=:) , allocatable :: str
     character(len=:) , allocatable :: fmt_str
     character(len=100) :: str_temp
     logical :: trimmed
-    integer :: ii
+    integer :: d, ii
+
+    ! handle optional decimal place
+    if (present(dp)) then
+      d = dp
+    else
+      d = DP_MAX
+    end if
 
     ! write format string
-    call dp_format_string(90, DP_MAX, fmt_str)
+    call dp_format_string(90, d, fmt_str)
 
     ! write dp to string
     write (str_temp, fmt_str) x
     str_temp = trim(adjustl(str_temp))
 
-    ! search for last redundant zero/whitespace
+    ! if dp specified, then just adjustl
+    if (present(dp)) then
+      allocate(character(len=len(trim(str_temp))) :: str)
+      write (str, "(a)") trim(str_temp)
+      return
+    end if
+
+    ! if dp not specified, then trim to last redundant zero/whitespace
     trimmed = .false.
     ii = len(str_temp)
     do while ((ii > 1) .and. (.not. trimmed))
