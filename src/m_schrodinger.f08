@@ -50,7 +50,9 @@ contains
     end do
 
     do nn = 1, n_wf
-      call shooting_bisection(n_x, step_size, x_grid, omega, v_grid, nn-1, &
+      ! call shooting_bisection(n_x, step_size, x_grid, omega, v_grid, nn-1, &
+      !     wf(:, nn), energies(nn), status)
+      call numerov_cooley(n_x, step_size, x_grid, omega, v_grid, nn-1, &
           wf(:, nn), energies(nn), status)
 
       ! terminate subroutine if numerov_cooley failed
@@ -69,7 +71,6 @@ contains
 
   end subroutine harmonic_oscillator
 
-
   ! shooting_bisection
   subroutine shooting_bisection (n_x, step_size, x_grid, omega, v_grid, n, &
       psi_grid, energy, status)
@@ -86,7 +87,7 @@ contains
     double precision :: norm
     integer :: nodes
     logical :: found
-    integer :: ii, jj
+    integer :: ii
 
     ! debug
     write (*, *) repeat('-', 80)
@@ -117,7 +118,7 @@ contains
       write (*, *) "<energy> = ", dp_trim(energy)
 
       ! solve schrodinger differential equation for psi_grid
-      call solve_finite_diff(n_x, step_size, x_grid, v_grid, energy, n, &
+      call solve_finite_diff(n_x, step_size, v_grid, energy, n, &
           psi_grid, status)
 
       ! terminate subroutine if solve_finite_diff failed
@@ -248,19 +249,20 @@ contains
     double precision :: norm
     integer :: nodes
     logical :: found
-    integer :: ii, jj
+    integer :: ii
 
     ! debug
+    write (*, *) repeat('-', 80)
     write (*, *) "numerov_cooley()"
     write (*, *) "<n_x> = ", int_trim(n_x)
     write (*, *) "<step_size> = ", dp_trim(step_size)
     write (*, *) "<n> = ", int_trim(n)
 
     ! estimate energy_min, energy_max
+    energy_min = 0.0d0
+    energy_max = 3.0d0*dble(n+1)*omega
     ! energy_min = dble(n)*omega
     ! energy_max = dble(n+1)*omega
-    energy_min = -1.0d1
-    energy_max =  1.0d1
 
     ! loop
     found = .false.
@@ -268,41 +270,55 @@ contains
     do while ((ii <= MAX_ITERATIONS) .and. (.not. found))
       ii = ii + 1
 
+      ! debug
+      write (*, *)
+      write (*, *) "node-finding iteration: ", int_trim(ii)
+      write (*, *) "<energy_min> = ", dp_trim(energy_min, dp=6)
+      write (*, *) "<energy_max> = ", dp_trim(energy_max, dp=6)
+
       energy = (energy_min + energy_max) / 2.0d0
 
-      ! ! solve_numerov
-      ! call solve_numerov(n_x, step_size, x_grid, v_grid, energy, n, &
-      !     psi_grid, correction, status)
+      ! debug
+      write (*, *) "<energy> = ", dp_trim(energy)
 
+      ! solve schrodinger differential equation for psi_grid
+      ! call solve_finite_diff(n_x, step_size, v_grid, energy, n, &
+      !     psi_grid, status)
+      call solve_numerov(n_x, step_size, x_grid, v_grid, energy, n, &
+          psi_grid, correction, status)
 
-      ! ! terminate subroutine if solve_numerov failed
-      ! if (status /= 0) then
-      !   psi_grid(:) = 0.0d0
-      !   write (*, *) "solve_numerov() failed"
-      !   write (*, *) "exiting numerov_cooley"
-      !   return
-      ! end if
-
-      ! finite difference
-      psi_grid(1) = 0.0d0
-      psi_grid(2) = SMALL*((-1.0d0) ** (n))
-      do jj = 2, n_x-1
-        psi_grid(jj+1) = &
-            2.0d0*((step_size ** 2)*(v_grid(jj)-energy) + 1.0d0)*psi_grid(jj) &
-            - psi_grid(jj-1)
-      end do
+      ! terminate subroutine if solve_finite_diff failed
+      if (status /= 0) then
+        psi_grid(:) = 0.0d0
+        write (*, *) "solve_finite_diff() failed"
+        write (*, *) "exiting numerov_cooley()"
+        return
+      end if
 
       ! count nodes
       nodes = count_nodes(n_x, psi_grid(:))
 
       ! debug
-      write (*, *) "on loop ", int_trim(ii), " counted ", int_trim(nodes)
+      write (*, *) "<nodes> = ", int_trim(nodes)
 
-      ! if wrong number of nodes, recalibrate energy_min, energy_max
+      ! if wrong number of nodes, recalibrate energy_min, energy_max and cycle
+      ! otherwise proceed
       if (nodes < n) then
         energy_min = energy
+
+        ! debug
+        write (*, *) "too few nodes"
+        write (*, *) "setting <energy_min> = ", dp_trim(energy_min)
+        write (*, *) "cycling"
+        cycle
       else if (nodes > n) then
         energy_max = energy
+
+        ! debug
+        write (*, *) "too many nodes"
+        write (*, *) "setting <energy_max> = ", dp_trim(energy_max)
+        write (*, *) "cycling"
+        cycle
       else
         found = .true.
       end if
@@ -317,16 +333,32 @@ contains
       return
     end if
 
+    ! debug
+    call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
+
+    ! debug
+    write (*, *) "correct number of nodes found"
+    write (*, *) "<energy> = ", dp_trim(energy, dp=6)
+
     ! with right number of nodes, determine correct energy using cooley
     found = .false.
     ii = 0
     do while ((ii <= MAX_ITERATIONS) .and. (.not. found))
       ii = ii + 1
 
-      energy = energy + correction
+      ! debug
+      write (*, *)
+      write (*, *) "energy-finding iteration: ", int_trim(ii)
 
       call solve_numerov(n_x, step_size, x_grid, v_grid, energy, n, &
           psi_grid, correction, status)
+
+      ! debug
+      write (*, *) "<energy> = ", dp_trim(energy, dp=6)
+      write (*, *) "<correction> = ", dp_trim(correction, dp=6)
+
+      ! debug
+      call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
 
       ! terminate subroutine if solve_numerov failed
       if (status /= 0) then
@@ -335,6 +367,8 @@ contains
         write (*, *) "exiting numerov_cooley()"
         return
       end if
+
+      energy = energy + correction
 
       found = (abs(correction) < TOLERANCE)
     end do
@@ -348,7 +382,7 @@ contains
     end if
 
     ! with right energy, normalise psi_grid
-    norm = integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2))
+    norm = sqrt(integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2)))
     psi_grid(:) = psi_grid(:) / norm
 
     ! debug
@@ -356,15 +390,15 @@ contains
 
     ! debug
     write (*, *) "end numerov_cooley()"
+    write (*, *) repeat('-', 80)
 
   end subroutine numerov_cooley
 
   ! solve_finite_diff
-  subroutine solve_finite_diff (n_x, step_size, x_grid, v_grid, energy, n, &
+  subroutine solve_finite_diff (n_x, step_size, v_grid, energy, n, &
       psi_grid, status)
     integer , intent(in) :: n_x
     double precision , intent(in) :: step_size
-    double precision , intent(in) :: x_grid(n_x)
     double precision , intent(in) :: v_grid(n_x)
     double precision , intent(in) :: energy
     integer , intent(in) :: n
@@ -464,8 +498,7 @@ contains
     double precision , intent(out) :: correction
     integer , intent(out) :: status
     double precision :: g_grid(n_x), s_grid(n_x)
-    double precision :: psi_l_grid(n_x), psi_r_grid(n_x)
-    double precision :: sum, numerov_term
+    double precision :: psi_l_grid(n_x), psi_r_grid(n_x), temp(n_x)
     logical :: matched
     integer :: i_m
     integer :: ii
@@ -497,7 +530,7 @@ contains
     end if
 
     ! set up g(x), s(x) for calls to numerov
-    g_grid(:) = 2.0d0*(v_grid(:) - energy)
+    g_grid(:) = -2.0d0*(v_grid(:) - energy)
     s_grid(:) = 0.0d0
 
     ! set up boundary conditions
@@ -531,12 +564,19 @@ contains
       return
     end if
 
+    ! ! debug
+    ! write (*, *) "abs(psi_l_grid(:) - psi_r_grid(:))"
+    ! temp(:) = abs(psi_l_grid(:) - psi_r_grid(:))
+    ! call display_graph(n_x, x_grid, temp, &
+    !     left=-1.0d0, right=1.0d0, bottom = -0.5d0, top=0.5d0)
+
     ! locate where psi_l and psi_r match up
     matched = .false.
     i_m = 0
-    ii = n_x/2 - 10
+    ii = n_x/3
     do while ((ii <= n_x) .and. (.not. matched))
-      matched = (abs(psi_l_grid(ii) - psi_r_grid(ii)) < TOLERANCE)
+      matched = (abs(psi_l_grid(ii) - psi_r_grid(ii)) < TOLERANCE) &
+          .and. (abs(psi_l_grid(ii)) > SMALL)
 
       if (matched) then
         i_m = ii
@@ -580,27 +620,62 @@ contains
     ! call display_graph(n_x, x_grid, psi_grid)
 
     ! calculate cooley's energy correction
-    sum = 0.0d0
-    do ii = 1, n_x
-      sum = sum + (abs(psi_grid(ii)) ** 2)
-    end do
+    correction = cooley_correction(n_x, step_size, v_grid, energy, &
+        psi_grid, i_m)
 
-    numerov_term = &
-        ((1.0d0 - (g_grid(i_m+1)*(step_size ** 2)/12.0d0)) &
-        +(1.0d0 - (g_grid(i_m-1)*(step_size ** 2)/12.0d0)) &
-        -2.0d0*(1.0d0 - (g_grid(i_m)*(step_size ** 2)/12.0d0)))
-
-    correction = &
-        ((v_grid(i_m) - energy)*psi_grid(i_m) &
-        -(0.5d0*numerov_term/(step_size ** 2)) &
-        )*psi_grid(i_m)/sum
-
+    write (*, *) "<correction> = ", dp_trim(correction, dp=6)
 
     ! debug
-    write (*, *) "<correction> = ", dp_trim(correction)
     write (*, *) "end solve_numerov()"
 
   end subroutine solve_numerov
+
+  function cooley_correction (n_x, step_size, v_grid, energy, &
+      psi_grid, i_m) result (correction)
+    integer , intent(in) :: n_x
+    double precision , intent(in) :: step_size
+    double precision , intent(in) :: v_grid(n_x)
+    double precision , intent(in) :: energy
+    double precision , intent(in) :: psi_grid(n_x)
+    integer , intent(in) :: i_m
+    double precision :: correction
+    double precision :: g_grid(n_x), y_grid(0:n_x+1)
+    double precision :: overlap, energy_diff, numerov_term
+    integer :: ii
+
+    ! debug
+    write (*, *) "cooley_correction()"
+
+    ! grid variables
+    g_grid(:) = 2.0d0*(v_grid(:) - energy)
+
+    y_grid(0) = 0.0d0
+    do ii = 1, n_x
+      y_grid(ii) = (1.0d0 - (((step_size ** 2)*g_grid(ii))/12.0d0))*psi_grid(ii)
+    end do
+    y_grid(n_x+1) = 0.0d0
+
+    ! calculate overlap
+    overlap = 0.0d0
+    do ii = 1, n_x
+      overlap = overlap + (abs(psi_grid(ii)) ** 2)
+    end do
+
+    numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
+
+    energy_diff = psi_grid(i_m)*( &
+        (v_grid(i_m) - energy)*psi_grid(i_m) &
+        - ((0.5d0*numerov_term)/(step_size ** 2)))
+
+    correction = energy_diff / overlap
+
+    ! debug
+    write (*, *) "<overlap> = ", dp_trim(overlap, dp=6)
+    write (*, *) "<energy_diff> = ", dp_trim(energy_diff, dp=6)
+    write (*, *) "<correction> = ", dp_trim(correction, dp=6)
+    write (*, *) "end cooley_correction()"
+
+  end function cooley_correction
 
   ! count_nodes
   !
@@ -618,11 +693,11 @@ contains
     write (*, *) "count_nodes()"
 
     ! method: sign change advanced
-    where (abs(psi_grid(:)) <= TOLERANCE)
+    where (abs(psi_grid(:)) <= SMALL*1d1)
       sgn(:) = 0
-    elsewhere (psi_grid(:) > TOLERANCE)
+    elsewhere (psi_grid(:) > SMALL*1d1)
       sgn(:) = 1
-    elsewhere (psi_grid(:) < TOLERANCE)
+    elsewhere (psi_grid(:) < SMALL*1d1)
       sgn(:) = -1
     endwhere
 

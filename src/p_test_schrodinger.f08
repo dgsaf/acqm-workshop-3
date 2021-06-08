@@ -9,16 +9,15 @@ program p_test_schrodinger
 
   implicit none
 
-  integer , parameter :: n_x = 50000
+  integer , parameter :: n_x = 1001
   double precision , parameter :: omega = 1.0d0
   double precision , parameter :: step_size = 10.0d0/dble(n_x)
-  integer , parameter :: n_wf = 20
+  integer , parameter :: n_wf = 10
   double precision :: wf(n_x, n_wf)
   double precision :: energies(n_wf)
   integer :: status = 0
 
   double precision :: x_grid(n_x)
-  double precision :: y_grid(n_x), g_grid(n_x), s_grid(n_x)
   integer :: ii
 
   ! initialise x_grid
