@@ -9,12 +9,12 @@ program p_qho
 
   double precision , parameter :: omega = 1.0d0
   integer , parameter :: n_wf = 4
-  integer , parameter :: n_delta = 5
+  integer , parameter :: n_delta = 8
 
   integer :: n_x
   double precision :: step_size
   double precision , allocatable :: wf(:, :, :)
-  double precision :: energies(n_wf, n_delta, 3)
+  double precision :: energies(n_wf, n_delta+1, 2)
   integer :: iterations(n_wf, n_delta, 2)
 
   double precision , allocatable :: x_grid(:)
@@ -73,30 +73,28 @@ program p_qho
       end if
     end do
 
-    ! calculate wavefunctions and energies analytically of first 4 states
+    ! calculate analytic wavefunctions of first 4 states
     do nn = 1, min(n_wf, 4)
-      energies(nn, jj, 3) = omega*(dble(nn)-0.5d0)
-
       do kk = 1, n_x
         wf(kk, nn, 3) = hermite(nn, sqrt(omega)*x_grid(kk))
       end do
     end do
 
-    ! display
-    write (*, *) "wavefunctions:"
-    do nn = 1, min(n_wf, 4)
-      write (*, *) "n = ", int_trim(nn)
-      write (*, *) "shooting_bisection:"
-      call display_graph(n_x, x_grid, wf(:, nn, 1))
-      write (*, *) "numerov_cooley:"
-      call display_graph(n_x, x_grid, wf(:, nn, 2))
-      write (*, *) "analytic:"
-      call display_graph(n_x, x_grid, wf(:, nn, 3))
-      write (*, *)
-    end do
+    ! ! display
+    ! write (*, *) "wavefunctions:"
+    ! do nn = 1, min(n_wf, 4)
+    !   write (*, *) "n = ", int_trim(nn)
+    !   write (*, *) "shooting_bisection:"
+    !   call display_graph(n_x, x_grid, wf(:, nn, 1))
+    !   write (*, *) "numerov_cooley:"
+    !   call display_graph(n_x, x_grid, wf(:, nn, 2))
+    !   write (*, *) "analytic:"
+    !   call display_graph(n_x, x_grid, wf(:, nn, 3))
+    !   write (*, *)
+    ! end do
 
-    ! write stuff to file
-
+    ! write functions to file
+    call write_wf(n_x, x_grid, n_wf, wf)
 
     ! deallocate grids
     deallocate(x_grid)
@@ -104,20 +102,33 @@ program p_qho
     deallocate(wf)
   end do
 
-  ! display
-  write (*, *) "energies:"
-  write (*, *) "shooting_bisection:"
-  call display_matrix(n_wf, n_delta, energies(:, :, 1))
-  write (*, *) "numerov_cooley:"
-  call display_matrix(n_wf, n_delta, energies(:, :, 2))
-  write (*, *) "analytic:"
-  call display_matrix(n_wf, n_delta, energies(:, :, 3))
+  ! calculate analytic energies of first 4 states
+  do nn = 1, min(n_wf, 4)
+    energies(nn, n_delta+1, 1) = omega*(dble(nn)-0.5d0)
+    energies(nn, n_delta+1, 2) = omega*(dble(nn)-0.5d0)
+  end do
 
-  write (*, *) "iterations:"
-  write (*, *) "shooting_bisection:"
-  call display_matrix(n_wf, n_delta, 1.0d0*iterations(:, :, 1))
-  write (*, *) "numerov_cooley:"
-  call display_matrix(n_wf, n_delta, 1.0d0*iterations(:, :, 2))
+  ! write energies to file
+  call write_energies(n_wf, n_delta, energies)
+
+  ! write iterations to file
+  call write_iterations(n_wf, n_delta, iterations)
+
+
+  ! ! display
+  ! write (*, *) "energies:"
+  ! write (*, *) "shooting_bisection:"
+  ! call display_matrix(n_wf, n_delta, energies(:, :, 1))
+  ! write (*, *) "numerov_cooley:"
+  ! call display_matrix(n_wf, n_delta, energies(:, :, 2))
+  ! write (*, *) "analytic:"
+  ! call display_matrix(n_wf, n_delta, energies(:, :, 3))
+
+  ! write (*, *) "iterations:"
+  ! write (*, *) "shooting_bisection:"
+  ! call display_matrix(n_wf, n_delta, 1.0d0*iterations(:, :, 1))
+  ! write (*, *) "numerov_cooley:"
+  ! call display_matrix(n_wf, n_delta, 1.0d0*iterations(:, :, 2))
 
   write (*, *) "end qho"
 
@@ -150,7 +161,65 @@ contains
   subroutine write_wf (n_x, x_grid, n_wf, wf)
     integer , intent(in) :: n_x
     double precision , intent(in) :: x_grid(n_x)
+    integer , intent(in) :: n_wf
     double precision , intent(in) :: wf(n_x, n_wf, 3)
+    character(len=100) :: basename
+
+    ! construct basename
+    write (basename, *) "output/qho/wf.n_x-", int_trim(n_x), "."
+
+    ! write shooting_bisection
+    call write_functions(n_x, x_grid, n_wf, wf(:, :, 1), &
+        trim(adjustl(basename))//"sb.txt")
+
+    ! write numerov_cooley
+    call write_functions(n_x, x_grid, n_wf, wf(:, :, 2), &
+        trim(adjustl(basename))//"nc.txt")
+
+    ! write analytic
+    call write_functions(n_x, x_grid, n_wf, wf(:, :, 3), &
+        trim(adjustl(basename))//"an.txt")
+
   end subroutine write_wf
+
+  ! write energies to file
+  subroutine write_energies (n_wf, n_delta, energies)
+    integer , intent(in) :: n_wf
+    integer , intent(in) :: n_delta
+    double precision , intent(in) :: energies(n_wf, n_delta+1, 3)
+    character(len=100) :: basename
+
+    ! construct basename
+    write (basename, *) "output/qho/en."
+
+    ! write shooting_bisection
+    call write_matrix(n_wf, n_delta+1, energies(:, :, 1), &
+        trim(adjustl(basename))//"sb.txt")
+
+    ! write numerov_cooley
+    call write_matrix(n_wf, n_delta+1, energies(:, :, 2), &
+        trim(adjustl(basename))//"nc.txt")
+
+  end subroutine write_energies
+
+  ! write iterations to file
+  subroutine write_iterations (n_wf, n_delta, iterations)
+    integer , intent(in) :: n_wf
+    integer , intent(in) :: n_delta
+    integer , intent(in) :: iterations(n_wf, n_delta, 2)
+    character(len=100) :: basename
+
+    ! construct basename
+    write (basename, *) "output/qho/it."
+
+    ! write shooting_bisection
+    call write_matrix_int(n_wf, n_delta, iterations(:, :, 1), &
+        trim(adjustl(basename))//"sb.txt")
+
+    ! write numerov_cooley
+    call write_matrix_int(n_wf, n_delta, iterations(:, :, 2), &
+        trim(adjustl(basename))//"nc.txt")
+
+  end subroutine write_iterations
 
 end program p_qho

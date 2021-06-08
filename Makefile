@@ -232,7 +232,10 @@ obj/%.o : $(firstword $(addprefix src/%,$(EXTS)))
 # explicit target dependencies for binaries
 bin/p_test_io : obj/m_random.o obj/m_io.o
 bin/p_test_schrodinger : obj/m_parameters.o obj/m_io.o \
-	obj/m_integrate.o obj/m_diffeq.o  obj/m_schrodinger.o
+	obj/m_integrate.o obj/m_diffeq.o obj/m_schrodinger.o
+
+bin/p_qho : obj/m_parameters.o obj/m_io.o \
+	obj/m_integrate.o obj/m_diffeq.o obj/m_schrodinger.o
 
 # implicit rule for binary targets
 bin/% : $(firstword $(addprefix src/%,$(EXTS)))

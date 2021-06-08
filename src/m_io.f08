@@ -6,7 +6,7 @@ module m_io
   implicit none
 
   private
-  public :: write_vector, write_matrix, write_functions, &
+  public :: write_vector, write_matrix, write_matrix_int, write_functions, &
       display_vector, display_matrix, display_functions, display_graph, &
       dp_trim, int_trim
 
@@ -57,6 +57,29 @@ contains
     close (fileunit)
 
   end subroutine write_matrix
+
+  ! write_matrix
+  subroutine write_matrix_int (n_rows, n_cols, A, filename)
+    integer , intent(in) :: n_rows, n_cols
+    integer , intent(in) :: A(n_rows, n_cols)
+    character(len=*) , intent(in) :: filename
+    integer :: fileunit
+    integer :: ii
+
+    ! open file
+    fileunit = 10
+
+    open (unit=fileunit, file=trim(adjustl(filename)), action="write")
+
+    ! write matrix to file
+    do ii = 1, n_rows
+      write (fileunit, *) A(ii, :)
+    end do
+
+    ! close file
+    close (fileunit)
+
+  end subroutine write_matrix_int
 
   ! write_functions
   subroutine write_functions (n_x, x_grid, n_f, f, filename)
