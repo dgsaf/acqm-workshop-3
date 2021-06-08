@@ -28,6 +28,6 @@ module m_parameters
   double precision , parameter :: SMALL = 1.0d-4
 
   ! computational parameters
-  integer , parameter :: MAX_ITERATIONS = 100
+  integer , parameter :: MAX_ITERATIONS = 1000
 
 end module m_parameters

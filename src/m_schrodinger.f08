@@ -260,7 +260,7 @@ contains
 
     ! estimate energy_min, energy_max
     energy_min = 0.0d0
-    energy_max = 3.0d0*dble(n+1)*omega
+    energy_max = 2.0d0*dble(n+1)*omega
     ! energy_min = dble(n)*omega
     ! energy_max = dble(n+1)*omega
 
@@ -333,8 +333,8 @@ contains
       return
     end if
 
-    ! debug
-    call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
+    ! ! debug
+    ! call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
 
     ! debug
     write (*, *) "correct number of nodes found"
@@ -357,8 +357,8 @@ contains
       write (*, *) "<energy> = ", dp_trim(energy, dp=6)
       write (*, *) "<correction> = ", dp_trim(correction, dp=6)
 
-      ! debug
-      call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
+      ! ! debug
+      ! call display_graph(n_x, x_grid, psi_grid, width=80, height=30)
 
       ! terminate subroutine if solve_numerov failed
       if (status /= 0) then
@@ -385,8 +385,8 @@ contains
     norm = sqrt(integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2)))
     psi_grid(:) = psi_grid(:) / norm
 
-    ! debug
-    call display_graph(n_x, x_grid, psi_grid)
+    ! ! debug
+    ! call display_graph(n_x, x_grid, psi_grid)
 
     ! debug
     write (*, *) "end numerov_cooley()"
@@ -500,7 +500,7 @@ contains
     double precision :: g_grid(n_x), s_grid(n_x)
     double precision :: psi_l_grid(n_x), psi_r_grid(n_x), temp(n_x)
     logical :: matched
-    integer :: i_m, m
+    integer :: i_m
     integer :: ii
 
     ! debug
@@ -599,9 +599,9 @@ contains
       psi_grid(ii) = psi_r_grid(ii) / psi_r_grid(i_m)
     end do
 
-    ! debug
-    write (*, *) "<psi_grid>"
-    call display_graph(n_x, x_grid, psi_grid)
+    ! ! debug
+    ! write (*, *) "<psi_grid>"
+    ! call display_graph(n_x, x_grid, psi_grid)
 
     ! calculate cooley's energy correction
     correction = cooley_correction(n_x, step_size, v_grid, energy, &
@@ -646,32 +646,33 @@ contains
     end do
     overlap = overlap*step_size
 
-    temp_grid(1) = 0.0d0
-    temp_grid(n_x) = 0.0d0
-    energy_diff = 0.0d0
-    do ii = 2, n_x-1
-      numerov_term = y_grid(ii+1) - 2.0d0*y_grid(ii) + y_grid(ii-1)
-      ! numerov_term = psi_grid(ii+1) - 2.0d0*psi_grid(ii) + psi_grid(ii-1)
+    ! general method
+    ! temp_grid(1) = 0.0d0
+    ! temp_grid(n_x) = 0.0d0
+    ! energy_diff = 0.0d0
+    ! do ii = 2, n_x-1
+    !   numerov_term = y_grid(ii+1) - 2.0d0*y_grid(ii) + y_grid(ii-1)
 
-      temp_grid(ii) = ((v_grid(ii) - energy)*psi_grid(ii)) &
-          - ((0.5d0*numerov_term)/(step_size ** 2))
-      energy_diff = energy_diff + (psi_grid(ii) * temp_grid(ii))
-    end do
-    energy_diff=energy_diff*step_size
-
-    ! numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
-
-    ! energy_diff = psi_grid(i_m)*( &
-    !     (v_grid(i_m) - energy)*psi_grid(i_m) &
-    !     - ((0.5d0*numerov_term)/(step_size ** 2)))
+    !   temp_grid(ii) = ((v_grid(ii) - energy)*psi_grid(ii)) &
+    !       - ((0.5d0*numerov_term)/(step_size ** 2))
+    !   energy_diff = energy_diff + (psi_grid(ii) * temp_grid(ii))
+    ! end do
     ! energy_diff=energy_diff*step_size
+
+    ! specific method
+    numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
+
+    energy_diff = psi_grid(i_m)*( &
+        (v_grid(i_m) - energy)*psi_grid(i_m) &
+        - ((0.5d0*numerov_term)/(step_size ** 2)))
+    energy_diff=energy_diff*step_size
 
     correction = energy_diff / overlap
 
     ! debug
-    write (*, *) "<overlap> = ", dp_trim(overlap, dp=6)
-    write (*, *) "<energy_diff> = ", dp_trim(energy_diff, dp=6)
-    write (*, *) "<correction> = ", dp_trim(correction, dp=6)
+    ! write (*, *) "<overlap> = ", dp_trim(overlap, dp=6)
+    ! write (*, *) "<energy_diff> = ", dp_trim(energy_diff, dp=6)
+    ! write (*, *) "<correction> = ", dp_trim(correction, dp=6)
     write (*, *) "end cooley_correction()"
 
   end function cooley_correction
