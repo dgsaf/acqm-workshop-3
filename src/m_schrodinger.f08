@@ -11,7 +11,7 @@ module m_schrodinger
   implicit none
 
   private
-  public :: harmonic_oscillator
+  public :: shooting_bisection, numerov_cooley
 
 contains
 
@@ -33,7 +33,7 @@ contains
     integer , intent(out) :: status
     double precision :: x_grid(n_x)
     double precision :: v_grid(n_x)
-    integer :: ii, nn
+    integer :: ii, nn, iterations
 
     ! debug
     write (*, *) repeat('=', 80)
@@ -51,9 +51,9 @@ contains
 
     do nn = 1, n_wf
       ! call shooting_bisection(n_x, step_size, x_grid, omega, v_grid, nn-1, &
-      !     wf(:, nn), energies(nn), status)
+      !     wf(:, nn), energies(nn), iterations, status)
       call numerov_cooley(n_x, step_size, x_grid, omega, v_grid, nn-1, &
-          wf(:, nn), energies(nn), status)
+          wf(:, nn), energies(nn), iterations, status)
 
       ! terminate subroutine if numerov_cooley failed
       if (status /= 0) then
@@ -73,7 +73,7 @@ contains
 
   ! shooting_bisection
   subroutine shooting_bisection (n_x, step_size, x_grid, omega, v_grid, n, &
-      psi_grid, energy, status)
+      psi_grid, energy, iterations, status)
     integer , intent(in) :: n_x
     double precision , intent(in) :: step_size
     double precision , intent(in) :: x_grid(n_x)
@@ -82,6 +82,7 @@ contains
     integer , intent(in) :: n
     double precision , intent(out) :: psi_grid(n_x)
     double precision , intent(out) :: energy
+    integer , intent(out) :: iterations
     integer , intent(out) :: status
     double precision :: energy_min, energy_max
     double precision :: norm
@@ -201,6 +202,9 @@ contains
       return
     end if
 
+    ! record iterations
+    iterations = ii
+
     ! with right energy, normalise psi_grid
     norm = sqrt(integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2)))
     psi_grid(:) = psi_grid(:) / norm
@@ -234,7 +238,7 @@ contains
   !     occured during execution.
   !
   subroutine numerov_cooley (n_x, step_size, x_grid, omega, v_grid, n, &
-      psi_grid, energy, status)
+      psi_grid, energy, iterations, status)
     integer , intent(in) :: n_x
     double precision , intent(in) :: step_size
     double precision , intent(in) :: x_grid(n_x)
@@ -243,6 +247,7 @@ contains
     integer , intent(in) :: n
     double precision , intent(out) :: psi_grid(n_x)
     double precision , intent(out) :: energy
+    integer , intent(out) :: iterations
     integer , intent(out) :: status
     double precision :: energy_min, energy_max
     double precision :: correction
@@ -340,6 +345,9 @@ contains
     write (*, *) "correct number of nodes found"
     write (*, *) "<energy> = ", dp_trim(energy, dp=6)
 
+    ! record node-finding iterations
+    iterations = ii
+
     ! with right number of nodes, determine correct energy using cooley
     found = .false.
     ii = 0
@@ -380,6 +388,9 @@ contains
       write (*, *) "exiting numerov_cooley()"
       return
     end if
+
+    ! record energy-finding iterations
+    iterations = iterations + ii
 
     ! with right energy, normalise psi_grid
     norm = sqrt(integrate_trapezoid(n_x, x_grid, (abs(psi_grid(:)) ** 2)))
@@ -505,10 +516,10 @@ contains
 
     ! debug
     write (*, *) "solve_numerov()"
-    write (*, *) "<n_x> = ", int_trim(n_x)
-    write (*, *) "<step_size> = ", dp_trim(step_size)
-    write (*, *) "<energy> = ", dp_trim(energy)
-    write (*, *) "<n> = ", int_trim(n)
+    ! write (*, *) "<n_x> = ", int_trim(n_x)
+    ! write (*, *) "<step_size> = ", dp_trim(step_size)
+    ! write (*, *) "<energy> = ", dp_trim(energy)
+    ! write (*, *) "<n> = ", int_trim(n)
 
     ! check if arguments are valid
     status = 0
@@ -628,7 +639,7 @@ contains
     integer :: ii
 
     ! debug
-    write (*, *) "cooley_correction()"
+    ! write (*, *) "cooley_correction()"
 
     ! grid variables
     g_grid(:) = -2.0d0*(v_grid(:) - energy)
@@ -673,7 +684,7 @@ contains
     ! write (*, *) "<overlap> = ", dp_trim(overlap, dp=6)
     ! write (*, *) "<energy_diff> = ", dp_trim(energy_diff, dp=6)
     ! write (*, *) "<correction> = ", dp_trim(correction, dp=6)
-    write (*, *) "end cooley_correction()"
+    ! write (*, *) "end cooley_correction()"
 
   end function cooley_correction
 

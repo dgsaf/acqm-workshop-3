@@ -2,7 +2,7 @@
 program p_test_schrodinger
 
   use m_io
-  use m_schrodinger , only : harmonic_oscillator
+  use m_schrodinger
 
   ! debug
   use m_diffeq
