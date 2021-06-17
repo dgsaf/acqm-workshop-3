@@ -228,6 +228,12 @@ obj/%.o : $(firstword $(addprefix src/%,$(EXTS)))
 	@echo "$(PFX)$@ : $^"
 	$(FORT) $(COMMONFLAGS) $(FFLAGS) -c $< -o $@ -J mod/
 
+# implicit rule for arbitrary fortan targets
+obj/intp.o : src/intp.f
+	@echo "$(PFX)$@ : $^"
+	$(FORT) $(FFLAGS) -c $< -o $@
+
+
 
 # explicit target dependencies for binaries
 bin/p_test_io : obj/m_random.o obj/m_io.o
@@ -235,6 +241,9 @@ bin/p_test_schrodinger : obj/m_parameters.o obj/m_io.o \
 	obj/m_integrate.o obj/m_diffeq.o obj/m_schrodinger.o
 
 bin/p_qho : obj/m_parameters.o obj/m_io.o \
+	obj/m_integrate.o obj/m_diffeq.o obj/m_schrodinger.o
+
+bin/p_h2_dissociate : obj/m_parameters.o obj/m_io.o obj/intp.o \
 	obj/m_integrate.o obj/m_diffeq.o obj/m_schrodinger.o
 
 # implicit rule for binary targets

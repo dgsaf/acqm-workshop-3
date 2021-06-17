@@ -10,8 +10,8 @@ module m_schrodinger
 
   implicit none
 
-  private
-  public :: shooting_bisection, numerov_cooley
+  ! private
+  ! public :: shooting_bisection, numerov_cooley
 
 contains
 
@@ -657,26 +657,26 @@ contains
     end do
     overlap = overlap*step_size
 
-    ! general method
-    ! temp_grid(1) = 0.0d0
-    ! temp_grid(n_x) = 0.0d0
-    ! energy_diff = 0.0d0
-    ! do ii = 2, n_x-1
-    !   numerov_term = y_grid(ii+1) - 2.0d0*y_grid(ii) + y_grid(ii-1)
+    !general method
+    temp_grid(1) = 0.0d0
+    temp_grid(n_x) = 0.0d0
+    energy_diff = 0.0d0
+    do ii = 2, n_x-1
+      numerov_term = y_grid(ii+1) - 2.0d0*y_grid(ii) + y_grid(ii-1)
 
-    !   temp_grid(ii) = ((v_grid(ii) - energy)*psi_grid(ii)) &
-    !       - ((0.5d0*numerov_term)/(step_size ** 2))
-    !   energy_diff = energy_diff + (psi_grid(ii) * temp_grid(ii))
-    ! end do
-    ! energy_diff=energy_diff*step_size
-
-    ! specific method
-    numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
-
-    energy_diff = psi_grid(i_m)*( &
-        (v_grid(i_m) - energy)*psi_grid(i_m) &
-        - ((0.5d0*numerov_term)/(step_size ** 2)))
+      temp_grid(ii) = ((v_grid(ii) - energy)*psi_grid(ii)) &
+          - ((0.5d0*numerov_term)/(step_size ** 2))
+      energy_diff = energy_diff + (psi_grid(ii) * temp_grid(ii))
+    end do
     energy_diff=energy_diff*step_size
+
+    ! ! specific method
+    ! numerov_term = y_grid(i_m+1) - 2.0d0*y_grid(i_m) + y_grid(i_m-1)
+
+    ! energy_diff = psi_grid(i_m)*( &
+    !     (v_grid(i_m) - energy)*psi_grid(i_m) &
+    !     - ((0.5d0*numerov_term)/(step_size ** 2)))
+    ! energy_diff=energy_diff*step_size
 
     correction = energy_diff / overlap
 
