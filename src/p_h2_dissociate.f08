@@ -18,7 +18,7 @@ program p_h2_dissociate
   double precision :: r_max
   double precision :: d_r
 
-  integer , parameter :: n_wf = 60
+  integer , parameter :: n_wf = 600
   double precision , allocatable :: wf(:, :, :)
   double precision :: ek_grid(n_wf)
   double precision :: D(2)
