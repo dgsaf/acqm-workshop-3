@@ -7,6 +7,8 @@ program p_h2_dissociate
 
   implicit none
 
+  double precision , parameter :: eV = 27.21136d0
+
   double precision , parameter :: mu = 918.07635
   ! integer , parameter :: n_mu = 6
   ! double precision , parameter :: mu(n_mu) = &
@@ -16,7 +18,7 @@ program p_h2_dissociate
   double precision :: r_max
   double precision :: d_r
 
-  integer , parameter :: n_wf = 20
+  integer , parameter :: n_wf = 60
   double precision , allocatable :: wf(:, :, :)
   double precision :: ek_grid(n_wf)
   double precision :: D(2)
@@ -29,6 +31,8 @@ program p_h2_dissociate
 
   integer :: status = 0
   integer :: ii, jj, nn
+
+  integer :: fileunit = 10
 
   write (*, *) "h2_dissociate"
 
@@ -60,7 +64,7 @@ program p_h2_dissociate
   end do
 
   ! scale to Ha
-  ek_grid(:) = ek_grid(:) / 27.21136d0
+  ek_grid(:) = ek_grid(:) / eV
 
   ! initialise dissociative energy
   D(:) = v_grid(n_r, :)
@@ -127,15 +131,26 @@ program p_h2_dissociate
   call franck_condon(n_r, r_grid, n_wf, wf, dcs, status)
 
   ! write functions to file
+  open (unit=fileunit, file="output/vib/1ssg.txt")
+  do ii = 1, n_r
+    write (fileunit, *) r_grid(ii), &
+        (0.002d0 * wf(ii,:,1)) + ek_grid(:) + D(1)
+  end do
+  close (fileunit)
 
-  ! write energies to file
+  open (unit=fileunit, file="output/vib/2psu.txt")
+  do ii = 1, n_r
+    write (fileunit, *) r_grid(ii), &
+        (0.002d0 * wf(ii,:,2)) + ek_grid(:) + D(2)
+  end do
+  close (fileunit)
 
-  ! write iterations to file
-
-  ! deallocate grids
-  deallocate(r_grid)
-  deallocate(v_grid)
-  deallocate(wf)
+  ! write franck-condon dcs to file
+  open (unit=fileunit, file="output/vib/fc_1ssg.txt")
+  do ii = 1, n_wf
+    write (fileunit, *) ek_grid(ii) * eV, dcs(ii, :)
+  end do
+  close (fileunit)
 
   write (*, *) "end h2_dissociate"
 
@@ -337,8 +352,8 @@ subroutine franck_condon (n_r, r_grid, n_wf, wf, dcs, status)
   dcs(:, :) = 0.0d0
   do jj = 1, 10
     do nn = 1, n_wf
-      dcs(nn, jj) = integrate_trapezoid(n_r, r_grid, &
-          abs(vib_wf(:, jj) * wf(:, nn, 1)) ** 2)
+      dcs(nn, jj) = &
+          abs(integrate_trapezoid(n_r, r_grid, vib_wf(:, jj) * wf(:, nn, 1)))**2
     end do
   end do
 
